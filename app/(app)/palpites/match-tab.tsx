@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { saveMatchPredictions } from "./actions";
 
 type Match = {
@@ -30,8 +30,14 @@ export default function MatchTab({
   groups: Group[];
   isOpen: boolean;
 }) {
-  const predMap = new Map(existingPredictions.map((p) => [p.match_id, p]));
-  const groupNameMap = new Map(groups.map((g) => [g.id, g.name]));
+  const predMap = useMemo(
+    () => new Map(existingPredictions.map((p) => [p.match_id, p])),
+    [existingPredictions]
+  );
+  const groupNameMap = useMemo(
+    () => new Map(groups.map((g) => [g.id, g.name])),
+    [groups]
+  );
 
   const [scores, setScores] = useState<Record<string, ScoreEntry>>(() => {
     const init: Record<string, ScoreEntry> = {};
@@ -45,17 +51,19 @@ export default function MatchTab({
   const [saveStates, setSaveStates] = useState<Record<string, GroupSaveState>>({});
 
   // Group matches by group_id, sort groups by name
-  const byGroup = new Map<string, Match[]>();
-  for (const m of matches) {
-    const key = m.group_id ?? "__unknown";
-    if (!byGroup.has(key)) byGroup.set(key, []);
-    byGroup.get(key)!.push(m);
-  }
-  const sortedGroups = [...byGroup.entries()].sort(([a], [b]) => {
-    const na = groupNameMap.get(a) ?? a;
-    const nb = groupNameMap.get(b) ?? b;
-    return na.localeCompare(nb);
-  });
+  const sortedGroups = useMemo(() => {
+    const byGroup = new Map<string, Match[]>();
+    for (const m of matches) {
+      const key = m.group_id ?? "__unknown";
+      if (!byGroup.has(key)) byGroup.set(key, []);
+      byGroup.get(key)!.push(m);
+    }
+    return [...byGroup.entries()].sort(([a], [b]) => {
+      const na = groupNameMap.get(a) ?? a;
+      const nb = groupNameMap.get(b) ?? b;
+      return na.localeCompare(nb);
+    });
+  }, [matches, groupNameMap]);
 
   function setScore(matchId: string, side: "home" | "away", value: string) {
     setScores((prev) => ({ ...prev, [matchId]: { ...prev[matchId], [side]: value, dirty: true } }));
@@ -159,6 +167,7 @@ export default function MatchTab({
                       min="0"
                       max="20"
                       inputMode="numeric"
+                      aria-label={`Gols de ${m.home_team?.name ?? "time da casa"}`}
                       value={s?.home ?? ""}
                       onChange={(e) => setScore(m.id, "home", e.target.value)}
                       disabled={disabled}
@@ -170,6 +179,7 @@ export default function MatchTab({
                       min="0"
                       max="20"
                       inputMode="numeric"
+                      aria-label={`Gols de ${m.away_team?.name ?? "time visitante"}`}
                       value={s?.away ?? ""}
                       onChange={(e) => setScore(m.id, "away", e.target.value)}
                       disabled={disabled}

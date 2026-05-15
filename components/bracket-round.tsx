@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import BracketMatch, { type BracketMatchData } from "./bracket-match";
 
 type Prediction = { match_id: string; home_score: number; away_score: number };
@@ -11,7 +12,10 @@ type Props = {
 };
 
 export default function BracketRound({ label, phaseKey, phaseOpen, matches, predictions }: Props) {
-  const predMap = new Map(predictions.map((p) => [p.match_id, p]));
+  const predMap = useMemo(
+    () => new Map(predictions.map((p) => [p.match_id, p])),
+    [predictions]
+  );
 
   return (
     <div className="min-w-[240px] flex-1">

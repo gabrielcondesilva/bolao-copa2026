@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "@/app/(auth)/login/actions";
+import { ErrorBoundary } from "@/components/error-boundary";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -9,15 +10,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   if (!user) redirect("/login");
 
-  let isAdmin = false;
-  if (user) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
-    isAdmin = profile?.role === "admin" || profile?.role === "editor";
-  }
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+  const isAdmin = profile?.role === "admin" || profile?.role === "editor";
 
   return (
     <div className="min-h-screen bg-background pb-16 md:pb-0 md:pl-56">
@@ -53,7 +51,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <MobileNavLink href="/estatisticas" label="Stats" />
       </nav>
 
-      <main className="px-4 py-6 max-w-3xl mx-auto md:max-w-4xl">{children}</main>
+      <main className="px-4 py-6 max-w-3xl mx-auto md:max-w-4xl">
+        <ErrorBoundary>{children}</ErrorBoundary>
+      </main>
     </div>
   );
 }

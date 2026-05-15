@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { saveGroupPrediction } from "./actions";
 
 type Group = { id: string; name: string };
@@ -30,14 +30,20 @@ export default function GroupTab({
   existingPredictions: ExistingGroupPrediction[];
   isOpen: boolean;
 }) {
-  const predMap = new Map(existingPredictions.map((p) => [p.group_id, p]));
-  const teamsByGroup = new Map<string, Team[]>();
-  for (const t of teams) {
-    if (t.group_id) {
-      if (!teamsByGroup.has(t.group_id)) teamsByGroup.set(t.group_id, []);
-      teamsByGroup.get(t.group_id)!.push(t);
+  const predMap = useMemo(
+    () => new Map(existingPredictions.map((p) => [p.group_id, p])),
+    [existingPredictions]
+  );
+  const teamsByGroup = useMemo(() => {
+    const map = new Map<string, Team[]>();
+    for (const t of teams) {
+      if (t.group_id) {
+        if (!map.has(t.group_id)) map.set(t.group_id, []);
+        map.get(t.group_id)!.push(t);
+      }
     }
-  }
+    return map;
+  }, [teams]);
 
   const [states, setStates] = useState<Record<string, GroupState>>(() => {
     const init: Record<string, GroupState> = {};
@@ -82,7 +88,10 @@ export default function GroupTab({
     }
   }
 
-  const sortedGroups = [...groups].sort((a, b) => a.name.localeCompare(b.name));
+  const sortedGroups = useMemo(
+    () => [...groups].sort((a, b) => a.name.localeCompare(b.name)),
+    [groups]
+  );
 
   return (
     <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">

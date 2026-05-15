@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { useState } from "react";
+import { useRealtimePhase } from "@/hooks/use-realtime-phase";
 import PhaseStatusBanner from "@/components/phase-status-banner";
 import MatchTab from "./match-tab";
 import GroupTab from "./group-tab";
@@ -46,26 +46,9 @@ export default function PredictionsTabs({
   players,
   existingTournamentPrediction,
 }: Props) {
-  const [phases, setPhases] = useState<Phase[]>(initialPhases);
+  // Reuses the existing hook instead of duplicating the Realtime subscription
+  const phases = useRealtimePhase(initialPhases);
   const [activeTab, setActiveTab] = useState<TabKey>("matches");
-
-  // Subscribe to phase changes — when admin opens/closes a phase, inputs update instantly
-  useEffect(() => {
-    const supabase = createClient();
-    const channel = supabase
-      .channel("phase-realtime")
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "phase_schedule" },
-        (payload) => {
-          const updated = payload.new as Phase;
-          setPhases((prev) => prev.map((p) => (p.id === updated.id ? { ...p, ...updated } : p)));
-        }
-      )
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
-  }, []);
 
   const groupPhase = phases.find((p) => p.phase_key === "group");
   const isGroupPhaseOpen = groupPhase?.status === "open";
@@ -80,10 +63,14 @@ export default function PredictionsTabs({
     <div className="space-y-4">
       <PhaseStatusBanner phase={groupPhase} />
 
-      <div className="flex gap-1 rounded-xl bg-surface p-1 border border-white/5">
+      <div role="tablist" aria-label="Seções de palpites" className="flex gap-1 rounded-xl bg-surface p-1 border border-white/5">
         {tabs.map(({ key, label, count }) => (
           <button
             key={key}
+            role="tab"
+            id={`tab-${key}`}
+            aria-selected={activeTab === key}
+            aria-controls={`tabpanel-${key}`}
             onClick={() => setActiveTab(key)}
             className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-sm font-medium transition-colors ${
               activeTab === key ? "bg-primary text-white" : "text-muted hover:text-foreground"
@@ -101,30 +88,38 @@ export default function PredictionsTabs({
         ))}
       </div>
 
-      {activeTab === "matches" && (
-        <MatchTab
-          matches={matches}
-          existingPredictions={existingMatchPredictions}
-          groups={groups}
-          isOpen={isGroupPhaseOpen}
-        />
-      )}
-      {activeTab === "groups" && (
-        <GroupTab
-          groups={groups}
-          teams={teams}
-          existingPredictions={existingGroupPredictions}
-          isOpen={isGroupPhaseOpen}
-        />
-      )}
-      {activeTab === "tournament" && (
-        <TournamentTab
-          teams={teams}
-          players={players}
-          existingPrediction={existingTournamentPrediction}
-          isOpen={isGroupPhaseOpen}
-        />
-      )}
+      <div role="tabpanel" id="tabpanel-matches" aria-labelledby="tab-matches" hidden={activeTab !== "matches"}>
+        {activeTab === "matches" && (
+          <MatchTab
+            matches={matches}
+            existingPredictions={existingMatchPredictions}
+            groups={groups}
+            isOpen={isGroupPhaseOpen}
+          />
+        )}
+      </div>
+
+      <div role="tabpanel" id="tabpanel-groups" aria-labelledby="tab-groups" hidden={activeTab !== "groups"}>
+        {activeTab === "groups" && (
+          <GroupTab
+            groups={groups}
+            teams={teams}
+            existingPredictions={existingGroupPredictions}
+            isOpen={isGroupPhaseOpen}
+          />
+        )}
+      </div>
+
+      <div role="tabpanel" id="tabpanel-tournament" aria-labelledby="tab-tournament" hidden={activeTab !== "tournament"}>
+        {activeTab === "tournament" && (
+          <TournamentTab
+            teams={teams}
+            players={players}
+            existingPrediction={existingTournamentPrediction}
+            isOpen={isGroupPhaseOpen}
+          />
+        )}
+      </div>
     </div>
   );
 }
