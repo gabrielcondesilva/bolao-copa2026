@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh auth *)",
+      "Bash(gh issue *)",
+      "Bash(python create_issues.py)"
+    ]
+  }
+}

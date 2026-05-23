@@ -79,32 +79,26 @@ O header será fixo no topo, com design escuro (igual ao site da FIFA), exibindo
 - Menu hamburguer no mobile para navegação responsiva
 
 ### 4.2 Aba — Jogos
-Exibe os jogos da Copa do Mundo diretamente do site oficial da FIFA, replicando fielmente o layout original.
-- Conteúdo espelhado do site FIFA (via embed ou integração)
+Exibe os jogos da Copa do Mundo importados via API externa (ver ADR-0001). O Admin pode corrigir qualquer resultado importado.
 - Agrupamento por data e fase
 - Exibição de horários, times, placares e estádio
-- Filtros por fase (grupos, oitavas, quartas, etc.)
-- Atualização em tempo real durante os jogos
+- Filtros por fase (Fase de Grupos, 16-avos, Oitavas, Quartas, Semifinais, Final)
+- Atualização após inserção/correção de resultado pelo Admin
 
 ### 4.3 Aba — Classificação
-Exibe a tabela de classificação dos grupos, fiel ao layout do site da FIFA.
+Exibe a tabela de classificação dos grupos calculada a partir dos resultados importados via API externa (ver ADR-0001).
 - Todos os grupos (A a L) com suas respectivas tabelas
-- Colunas: J, C, E, D, M, S, DG, Pts, Últimos Resultados
-- Conteúdo dinâmico, atualizado conforme os jogos acontecem
-- Layout idêntico ao site oficial da FIFA
+- Colunas: J, V, E, D, GP, GC, SG, Pts
+- Atualizada conforme o Admin insere os resultados oficiais
 
 ### 4.4 Aba — Palpites
 
 #### Fase de Grupos (1ª Etapa)
 - Palpite do placar de cada um dos 72 jogos da fase de grupos
-- Seleção dos 32 classificados para as 16-avos de final
-- Seleção dos 16 classificados para as oitavas de final
-- Seleção dos 8 classificados para as quartas de final
-- Seleção dos 4 semifinalistas
-- Seleção dos 2 times que disputarão o 3º lugar
-- Seleção dos 2 finalistas
-- Indicação do Campeão, Vice, 3º e 4º colocados
-- Indicação do Craque da Copa e Artilheiro (conforme eleição da FIFA)
+- Indicação do Campeão, Vice, 3º e 4º colocados (Palpite Final)
+- Indicação do Craque da Copa e Artilheiro (Palpite Final, conforme eleição da FIFA)
+
+> Os classificados por fase (quem avança para os 16-avos, oitavas, quartas etc.) são calculados automaticamente pelo sistema a partir dos palpites de placar — o participante não faz seleção explícita. Ver Classificados Derivados no CONTEXT.md.
 
 #### Fases Eliminatórias (2ª Etapa)
 - Palpite dos resultados de cada jogo das fases eliminatórias
@@ -127,8 +121,8 @@ Exibe a classificação em tempo real de todos os participantes do bolão.
 - Colunas: Posição, Nome, Pontos Totais, Placares Certos, Resultados Certos
 - Atualização em tempo real (Supabase Realtime)
 
-#### Visualização de Palpites por Usuário (após prazo)
-Após o prazo de cada fase, os palpites de todos os participantes ficam visíveis. No ranking, ao clicar no nome de um usuário, abre-se um modal/dropdown com:
+#### Visualização de Palpites por Usuário
+A partir do início do primeiro jogo de cada fase, os palpites de todos os participantes ficam visíveis. No ranking, ao clicar no nome de um usuário, abre-se um modal/dropdown com:
 - Lista de jogos com o palpite do usuário
 - Indicação visual do resultado de cada palpite:
   - 🟢 Verde: Placar cravado (10 pts)
@@ -189,13 +183,11 @@ Após o prazo de cada fase, os palpites de todos os participantes ficam visívei
 
 Em caso de empate na pontuação total, os seguintes critérios serão aplicados em ordem:
 
-1. Número de placares exatos acertados
-2. Número de acertos de diferença de gols e empates
-3. Número de acertos do vencedor e gols do mesmo ou do perdedor
-4. Número de acertos apenas do vencedor
-5. Melhor pontuação na Fase de Grupos
-6. Melhor pontuação no Mata-mata
-7. Sorteio
+1. Mais Placares Cravados
+2. Mais Resultados Corretos
+3. Melhor pontuação na Fase de Grupos
+4. Melhor pontuação nas Fases Eliminatórias
+5. Sorteio
 
 ---
 
@@ -212,14 +204,8 @@ Em caso de empate na pontuação total, os seguintes critérios serão aplicados
 **palpites_jogos**
 `id, user_id, jogo_id, placar_casa, placar_fora, pontos_obtidos, created_at, updated_at`
 
-**palpites_classificados**
-`id, user_id, fase, times_selecionados (JSON), pontos_obtidos`
-
 **palpites_finais**
 `id, user_id, campao, vice, terceiro, quarto, artilheiro, craque, pontos_obtidos`
-
-**ranking_cache**
-`id, user_id, pontos_total, placares_certos, resultados_certos, updated_at`
 
 ---
 
