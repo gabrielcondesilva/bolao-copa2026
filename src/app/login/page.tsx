@@ -1,6 +1,7 @@
 'use client'
 
 import { useActionState } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { login } from '@/app/actions/auth'
 
@@ -13,9 +14,13 @@ export default function LoginPage() {
 
         {/* Brand */}
         <div className="mb-8 text-center">
-          <div className="mb-3 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-green-700 text-2xl shadow-md">
-            ⚽
-          </div>
+          <Image
+            src="/logo.png"
+            alt="FIFA World Cup 2026"
+            width={96}
+            height={96}
+            className="mx-auto mb-4 drop-shadow-sm"
+          />
           <h1 className="text-2xl font-extrabold tracking-tight text-zinc-900">
             Bolão <span className="text-green-700">Copa 2026</span>
           </h1>
