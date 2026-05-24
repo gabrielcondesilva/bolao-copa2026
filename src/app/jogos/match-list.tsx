@@ -73,7 +73,7 @@ export function MatchList({ initialMatches, teams, phase }: Props) {
     <div className="space-y-6">
       {[...grouped.entries()].map(([date, dayMatches]) => (
         <div key={date}>
-          <h3 className="mb-3 text-xs font-bold uppercase tracking-widest text-zinc-400 capitalize">
+          <h3 className="mb-3 text-xs font-bold uppercase tracking-widest text-zinc-400 capitalize" suppressHydrationWarning>
             {date}
           </h3>
           <div className="space-y-2.5">
@@ -131,7 +131,7 @@ function MatchCard({
             Encerrado
           </span>
         ) : (
-          <span className="text-xs font-medium text-zinc-400">{time}</span>
+          <span className="text-xs font-medium text-zinc-400" suppressHydrationWarning>{time}</span>
         )}
       </div>
 
@@ -162,7 +162,7 @@ function MatchCard({
           ) : (
             <div className="flex flex-col items-center gap-0.5">
               <span className="text-base font-bold text-zinc-300">vs</span>
-              <span className="text-xs text-zinc-400">{time}</span>
+              <span className="text-xs text-zinc-400" suppressHydrationWarning>{time}</span>
             </div>
           )}
         </div>
