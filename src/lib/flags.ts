@@ -1,18 +1,18 @@
-// Maps football-data.org TLA codes → flag emoji for Copa do Mundo 2026 teams.
-export const TEAM_FLAGS: Record<string, string> = {
-  ALG: '🇩🇿', ARG: '🇦🇷', AUS: '🇦🇺', AUT: '🇦🇹', BEL: '🇧🇪',
-  BIH: '🇧🇦', BRA: '🇧🇷', CAN: '🇨🇦', CIV: '🇨🇮', COD: '🇨🇩',
-  COL: '🇨🇴', CPV: '🇨🇻', CRO: '🇭🇷', CUW: '🇨🇼', CZE: '🇨🇿',
-  ECU: '🇪🇨', EGY: '🇪🇬', ENG: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', ESP: '🇪🇸', FRA: '🇫🇷',
-  GER: '🇩🇪', GHA: '🇬🇭', HAI: '🇭🇹', IRN: '🇮🇷', IRQ: '🇮🇶',
-  JOR: '🇯🇴', JPN: '🇯🇵', KOR: '🇰🇷', KSA: '🇸🇦', MAR: '🇲🇦',
-  MEX: '🇲🇽', NED: '🇳🇱', NOR: '🇳🇴', NZL: '🇳🇿', PAN: '🇵🇦',
-  PAR: '🇵🇾', POR: '🇵🇹', QAT: '🇶🇦', RSA: '🇿🇦', SCO: '🏴󠁧󠁢󠁳󠁣󠁴󠁿',
-  SEN: '🇸🇳', SUI: '🇨🇭', SWE: '🇸🇪', TUN: '🇹🇳', TUR: '🇹🇷',
-  URU: '🇺🇾', USA: '🇺🇸', UZB: '🇺🇿',
+// Maps football-data.org TLA codes → ISO 3166-1 alpha-2 for use with flag-icons CSS.
+const TEAM_ISO: Record<string, string> = {
+  ALG: 'dz', ARG: 'ar', AUS: 'au', AUT: 'at', BEL: 'be',
+  BIH: 'ba', BRA: 'br', CAN: 'ca', CIV: 'ci', COD: 'cd',
+  COL: 'co', CPV: 'cv', CRO: 'hr', CUW: 'cw', CZE: 'cz',
+  ECU: 'ec', EGY: 'eg', ENG: 'gb-eng', ESP: 'es', FRA: 'fr',
+  GER: 'de', GHA: 'gh', HAI: 'ht', IRN: 'ir', IRQ: 'iq',
+  JOR: 'jo', JPN: 'jp', KOR: 'kr', KSA: 'sa', MAR: 'ma',
+  MEX: 'mx', NED: 'nl', NOR: 'no', NZL: 'nz', PAN: 'pa',
+  PAR: 'py', POR: 'pt', QAT: 'qa', RSA: 'za', SCO: 'gb-sct',
+  SEN: 'sn', SUI: 'ch', SWE: 'se', TUN: 'tn', TUR: 'tr',
+  URU: 'uy', USA: 'us', UZB: 'uz',
 }
 
 export function teamFlag(countryCode: string | null | undefined): string {
   if (!countryCode) return ''
-  return TEAM_FLAGS[countryCode.toUpperCase()] ?? ''
+  return TEAM_ISO[countryCode.toUpperCase()] ?? ''
 }

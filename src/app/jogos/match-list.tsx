@@ -143,7 +143,7 @@ function MatchCard({
               {home}
             </span>
             {homeFlag ? (
-              <span className="shrink-0 text-lg leading-none" aria-hidden="true">{homeFlag}</span>
+              <span className={`fi fi-${homeFlag} shrink-0 rounded-sm`} style={{ fontSize: '1.125rem' }} aria-hidden="true" />
             ) : null}
           </div>
         </div>
@@ -170,7 +170,7 @@ function MatchCard({
         <div className="min-w-0 flex-1 text-left">
           <div className="flex items-center gap-2">
             {awayFlag ? (
-              <span className="shrink-0 text-lg leading-none" aria-hidden="true">{awayFlag}</span>
+              <span className={`fi fi-${awayFlag} shrink-0 rounded-sm`} style={{ fontSize: '1.125rem' }} aria-hidden="true" />
             ) : null}
             <span className="min-w-0 truncate text-sm font-bold text-zinc-900 sm:text-base">
               {away}
