@@ -1,0 +1,18 @@
+// Maps football-data.org TLA codes → flag emoji for Copa do Mundo 2026 teams.
+export const TEAM_FLAGS: Record<string, string> = {
+  ALG: '🇩🇿', ARG: '🇦🇷', AUS: '🇦🇺', AUT: '🇦🇹', BEL: '🇧🇪',
+  BIH: '🇧🇦', BRA: '🇧🇷', CAN: '🇨🇦', CIV: '🇨🇮', COD: '🇨🇩',
+  COL: '🇨🇴', CPV: '🇨🇻', CRO: '🇭🇷', CUW: '🇨🇼', CZE: '🇨🇿',
+  ECU: '🇪🇨', EGY: '🇪🇬', ENG: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', ESP: '🇪🇸', FRA: '🇫🇷',
+  GER: '🇩🇪', GHA: '🇬🇭', HAI: '🇭🇹', IRN: '🇮🇷', IRQ: '🇮🇶',
+  JOR: '🇯🇴', JPN: '🇯🇵', KOR: '🇰🇷', KSA: '🇸🇦', MAR: '🇲🇦',
+  MEX: '🇲🇽', NED: '🇳🇱', NOR: '🇳🇴', NZL: '🇳🇿', PAN: '🇵🇦',
+  PAR: '🇵🇾', POR: '🇵🇹', QAT: '🇶🇦', RSA: '🇿🇦', SCO: '🏴󠁧󠁢󠁳󠁣󠁴󠁿',
+  SEN: '🇸🇳', SUI: '🇨🇭', SWE: '🇸🇪', TUN: '🇹🇳', TUR: '🇹🇷',
+  URU: '🇺🇾', USA: '🇺🇸', UZB: '🇺🇿',
+}
+
+export function teamFlag(countryCode: string | null | undefined): string {
+  if (!countryCode) return ''
+  return TEAM_FLAGS[countryCode.toUpperCase()] ?? ''
+}

@@ -2,13 +2,20 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { teamFlag } from '@/lib/flags'
 import type { Database } from '@/lib/supabase/types'
 
 type Match = Database['public']['Tables']['matches']['Row']
 
+interface Team {
+  id: string
+  name: string
+  country_code: string
+}
+
 interface Props {
   initialMatches: Match[]
-  teams: { id: string; name: string }[]
+  teams: Team[]
   phase: string
 }
 
@@ -23,7 +30,7 @@ const PHASE_LABEL: Record<string, string> = {
 
 export function MatchList({ initialMatches, teams, phase }: Props) {
   const [matches, setMatches] = useState(initialMatches)
-  const teamName = new Map(teams.map(t => [t.id, t.name]))
+  const teamMap = new Map(teams.map(t => [t.id, t]))
 
   useEffect(() => { setMatches(initialMatches) }, [initialMatches])
 
@@ -51,7 +58,6 @@ export function MatchList({ initialMatches, teams, phase }: Props) {
     )
   }
 
-  // Group by local date
   const grouped = new Map<string, Match[]>()
   for (const m of [...matches].sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at))) {
     const key = new Date(m.scheduled_at).toLocaleDateString('pt-BR', {
@@ -66,17 +72,15 @@ export function MatchList({ initialMatches, teams, phase }: Props) {
     <div className="space-y-6">
       {[...grouped.entries()].map(([date, dayMatches]) => (
         <div key={date}>
-          {/* Date header */}
           <h3 className="mb-3 text-xs font-bold uppercase tracking-widest text-zinc-400 capitalize">
             {date}
           </h3>
-
-          <div className="space-y-3">
+          <div className="space-y-2.5">
             {dayMatches.map(m => (
               <MatchCard
                 key={m.id}
                 match={m}
-                teamName={teamName}
+                teamMap={teamMap}
                 isGroupStage={isGroupStage}
               />
             ))}
@@ -89,15 +93,19 @@ export function MatchList({ initialMatches, teams, phase }: Props) {
 
 function MatchCard({
   match,
-  teamName,
+  teamMap,
   isGroupStage,
 }: {
   match: Match
-  teamName: Map<string, string>
+  teamMap: Map<string, Team>
   isGroupStage: boolean
 }) {
-  const home = teamName.get(match.home_team_id ?? '') ?? '—'
-  const away = teamName.get(match.away_team_id ?? '') ?? '—'
+  const homeTeam = teamMap.get(match.home_team_id ?? '')
+  const awayTeam = teamMap.get(match.away_team_id ?? '')
+  const home = homeTeam?.name ?? '—'
+  const away = awayTeam?.name ?? '—'
+  const homeFlag = teamFlag(homeTeam?.country_code)
+  const awayFlag = teamFlag(awayTeam?.country_code)
 
   const time = new Date(match.scheduled_at).toLocaleTimeString('pt-BR', {
     hour: '2-digit', minute: '2-digit',
@@ -108,52 +116,70 @@ function MatchCard({
     : (PHASE_LABEL[match.phase] ?? match.phase)
 
   return (
-    <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
+    <div className={`overflow-hidden rounded-xl border bg-white shadow-sm transition-shadow hover:shadow-md ${
+      match.is_finished ? 'border-zinc-200' : 'border-zinc-200'
+    }`}>
 
-      {/* Card header: group/phase + time */}
-      <div className="flex items-center justify-between border-b border-zinc-100 bg-zinc-50 px-4 py-2">
+      {/* Card header */}
+      <div className="flex items-center justify-between border-b border-zinc-100 bg-zinc-50/80 px-4 py-2">
         <span className="text-xs font-bold uppercase tracking-wide text-zinc-500">
           {contextLabel}
         </span>
-        <div className="flex items-center gap-2">
-          {match.is_finished ? (
-            <span className="rounded-full bg-zinc-200 px-2 py-0.5 text-xs font-semibold text-zinc-500">
-              Encerrado
-            </span>
-          ) : (
-            <span className="text-xs font-medium text-zinc-400">{time}</span>
-          )}
-        </div>
+        {match.is_finished ? (
+          <span className="rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-semibold text-zinc-500">
+            Encerrado
+          </span>
+        ) : (
+          <span className="text-xs font-medium text-zinc-400">{time}</span>
+        )}
       </div>
 
       {/* Teams + score */}
-      <div className="flex items-center gap-2 px-4 py-5">
-        {/* Home team */}
-        <span className="min-w-0 flex-1 truncate text-right text-base font-bold text-zinc-900 sm:text-lg">
-          {home}
-        </span>
+      <div className="flex items-center gap-3 px-4 py-4">
+        {/* Home */}
+        <div className="min-w-0 flex-1 text-right">
+          <div className="flex items-center justify-end gap-2">
+            <span className="min-w-0 truncate text-sm font-bold text-zinc-900 sm:text-base">
+              {home}
+            </span>
+            {homeFlag && (
+              <span className="shrink-0 text-lg leading-none" aria-hidden="true">{homeFlag}</span>
+            )}
+          </div>
+        </div>
 
         {/* Score / VS */}
-        <div className="w-24 shrink-0 text-center sm:w-28">
+        <div className="w-20 shrink-0 text-center sm:w-24">
           {match.is_finished ? (
-            <span className="text-2xl font-black tabular-nums text-zinc-900 sm:text-3xl">
-              {match.home_score} <span className="text-zinc-300">–</span> {match.away_score}
-            </span>
+            <div className="rounded-lg bg-zinc-900 px-2 py-1.5">
+              <span className="text-xl font-black tabular-nums text-white sm:text-2xl">
+                {match.home_score}
+                <span className="mx-1 text-zinc-500">–</span>
+                {match.away_score}
+              </span>
+            </div>
           ) : (
             <div className="flex flex-col items-center gap-0.5">
-              <span className="text-lg font-bold text-zinc-300">vs</span>
+              <span className="text-base font-bold text-zinc-300">vs</span>
               <span className="text-xs text-zinc-400">{time}</span>
             </div>
           )}
         </div>
 
-        {/* Away team */}
-        <span className="min-w-0 flex-1 truncate text-base font-bold text-zinc-900 sm:text-lg">
-          {away}
-        </span>
+        {/* Away */}
+        <div className="min-w-0 flex-1 text-left">
+          <div className="flex items-center gap-2">
+            {awayFlag && (
+              <span className="shrink-0 text-lg leading-none" aria-hidden="true">{awayFlag}</span>
+            )}
+            <span className="min-w-0 truncate text-sm font-bold text-zinc-900 sm:text-base">
+              {away}
+            </span>
+          </div>
+        </div>
       </div>
 
-      {/* Card footer: stadium */}
+      {/* Footer: stadium */}
       {match.stadium && (
         <div className="border-t border-zinc-100 px-4 py-2">
           <span className="text-xs text-zinc-400">{match.stadium}</span>
