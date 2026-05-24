@@ -23,6 +23,7 @@ export default async function AdminClassificadosPage() {
   if (!user) redirect('/login')
   const { data: adminProfile } = await supabase.from('users').select('is_admin').eq('id', user.id).single()
   if (!adminProfile?.is_admin) redirect('/')
+  const admin = createAdminClient()
   const [
     { data: teams },
     { data: bracketOverrides },
