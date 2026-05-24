@@ -25,8 +25,31 @@ export async function proxy(request: NextRequest) {
     }
   )
 
-  // Refresh session — do not remove this call
-  await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
+  const { pathname } = request.nextUrl
+
+  // Carry any refreshed session cookies on every redirect
+  function redirectTo(url: string) {
+    const res = NextResponse.redirect(new URL(url, request.url))
+    supabaseResponse.cookies.getAll().forEach(c => res.cookies.set(c.name, c.value))
+    return res
+  }
+
+  const isPublicRoute =
+    pathname.startsWith('/login') ||
+    pathname.startsWith('/auth/callback')
+
+  if (!user && !isPublicRoute) return redirectTo('/login')
+
+  if (user) {
+    if (user.app_metadata?.must_change_password && pathname !== '/alterar-senha') {
+      return redirectTo('/alterar-senha')
+    }
+    if (pathname.startsWith('/login')) return redirectTo('/')
+    if (pathname.startsWith('/admin') && !user.app_metadata?.is_admin) {
+      return redirectTo('/')
+    }
+  }
 
   return supabaseResponse
 }
