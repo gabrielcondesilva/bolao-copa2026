@@ -31,6 +31,7 @@ const PHASE_LABEL: Record<string, string> = {
 export function MatchList({ initialMatches, teams, phase }: Props) {
   const [matches, setMatches] = useState(initialMatches)
   const teamMap = new Map(teams.map(t => [t.id, t]))
+  if (teams.length > 0) console.log('[flags debug] sample team:', teams[0])
 
   useEffect(() => { setMatches(initialMatches) }, [initialMatches])
 

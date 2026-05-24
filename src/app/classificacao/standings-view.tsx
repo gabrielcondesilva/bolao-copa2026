@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { calculateStandings, type GroupStanding } from '@/lib/engines/standings'
+import { teamFlag } from '@/lib/flags'
 import type { Database } from '@/lib/supabase/types'
 
 type DbMatch = Database['public']['Tables']['matches']['Row']
@@ -71,14 +72,15 @@ export function StandingsView({ initialMatches, teams }: Props) {
           }))
 
         const standings = calculateStandings(groupTeams, groupMatches)
+        const flagMap = new Map(teams.map(t => [t.id, t.country_code]))
 
-        return <GroupTable key={group} group={group} standings={standings} />
+        return <GroupTable key={group} group={group} standings={standings} flagMap={flagMap} />
       })}
     </div>
   )
 }
 
-function GroupTable({ group, standings }: { group: string; standings: GroupStanding[] }) {
+function GroupTable({ group, standings, flagMap }: { group: string; standings: GroupStanding[]; flagMap: Map<string, string> }) {
   return (
     <div className="overflow-hidden rounded-lg border border-zinc-200 bg-white">
       <div className="border-b border-zinc-100 bg-zinc-50 px-3 py-2">
@@ -111,7 +113,12 @@ function GroupTable({ group, standings }: { group: string; standings: GroupStand
               <td className="py-2 pl-3 pr-1">
                 <div className="flex items-center gap-1.5">
                   <span className="text-zinc-400">{s.position}</span>
-                  <span className="truncate font-medium text-zinc-900 max-w-[90px] sm:max-w-none">
+                  {teamFlag(flagMap.get(s.team.id)) && (
+                    <span className="shrink-0 text-sm leading-none" aria-hidden="true">
+                      {teamFlag(flagMap.get(s.team.id))}
+                    </span>
+                  )}
+                  <span className="truncate font-medium text-zinc-900 max-w-[80px] sm:max-w-none">
                     {s.team.name}
                   </span>
                 </div>
