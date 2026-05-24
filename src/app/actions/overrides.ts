@@ -11,7 +11,9 @@ type ActionResult = { error: string } | { success: true } | undefined
 async function assertAdmin(): Promise<boolean> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  return !!user?.app_metadata?.is_admin
+  if (!user) return false
+  const { data } = await supabase.from('users').select('is_admin').eq('id', user.id).single()
+  return !!data?.is_admin
 }
 
 export async function saveBracketOverride(

@@ -1,4 +1,5 @@
-import { createClient } from '@/lib/supabase/server'
+﻿import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { logout } from '@/app/actions/auth'
@@ -7,7 +8,9 @@ import { ImportForm } from './import-form'
 export default async function AdminImportarPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user?.app_metadata?.is_admin) redirect('/')
+  if (!user) redirect('/login')
+  const { data: adminProfile } = await supabase.from('users').select('is_admin').eq('id', user.id).single()
+  if (!adminProfile?.is_admin) redirect('/')
 
   return (
     <div className="min-h-full bg-zinc-50">

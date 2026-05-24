@@ -46,9 +46,7 @@ export async function proxy(request: NextRequest) {
       return redirectTo('/alterar-senha')
     }
     if (pathname.startsWith('/login')) return redirectTo('/')
-    if (pathname.startsWith('/admin') && !user.app_metadata?.is_admin) {
-      return redirectTo('/')
-    }
+    // Admin check is handled in each admin server component — not here
   }
 
   return supabaseResponse

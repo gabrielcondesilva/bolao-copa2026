@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+﻿import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
@@ -20,9 +20,9 @@ const PHASE_LABEL: Record<string, string> = {
 export default async function AdminClassificadosPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user?.app_metadata?.is_admin) redirect('/')
-
-  const admin = createAdminClient()
+  if (!user) redirect('/login')
+  const { data: adminProfile } = await supabase.from('users').select('is_admin').eq('id', user.id).single()
+  if (!adminProfile?.is_admin) redirect('/')
   const [
     { data: teams },
     { data: bracketOverrides },

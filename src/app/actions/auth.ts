@@ -62,7 +62,9 @@ export async function createParticipant(
 ): Promise<ActionResult> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user?.app_metadata?.is_admin) redirect('/')
+  if (!user) redirect('/login')
+  const { data: adminProfile } = await supabase.from('users').select('is_admin').eq('id', user.id).single()
+  if (!adminProfile?.is_admin) redirect('/')
 
   const name = (formData.get('name') as string).trim()
   const email = (formData.get('email') as string).trim()

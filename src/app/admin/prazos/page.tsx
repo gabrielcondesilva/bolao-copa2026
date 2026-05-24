@@ -1,4 +1,5 @@
-import { createClient } from '@/lib/supabase/server'
+﻿import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { logout } from '@/app/actions/auth'
@@ -21,7 +22,9 @@ const PHASE_LABELS: Record<string, string> = Object.fromEntries(PHASES.map(p => 
 export default async function AdminPrazosPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user?.app_metadata?.is_admin) redirect('/')
+  if (!user) redirect('/login')
+  const { data: adminProfile } = await supabase.from('users').select('is_admin').eq('id', user.id).single()
+  if (!adminProfile?.is_admin) redirect('/')
 
   const [{ data: deadlines }, { data: exceptions }, { data: participants }] = await Promise.all([
     supabase.from('phase_deadlines').select('phase, deadline_at'),

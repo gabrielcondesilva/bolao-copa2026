@@ -1,4 +1,5 @@
-import { createClient } from '@/lib/supabase/server'
+﻿import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { logout } from '@/app/actions/auth'
@@ -27,7 +28,9 @@ export default async function AdminJogosPage({
 }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user?.app_metadata?.is_admin) redirect('/')
+  if (!user) redirect('/login')
+  const { data: adminProfile } = await supabase.from('users').select('is_admin').eq('id', user.id).single()
+  if (!adminProfile?.is_admin) redirect('/')
 
   const { phase: phaseParam } = await searchParams
   const phase: Phase = (PHASES.find(p => p.value === phaseParam)?.value ?? 'group_stage') as Phase

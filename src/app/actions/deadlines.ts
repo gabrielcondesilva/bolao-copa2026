@@ -15,7 +15,9 @@ export async function upsertPhaseDeadline(
 ): Promise<ActionResult> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user?.app_metadata?.is_admin) redirect('/')
+  if (!user) redirect('/login')
+  const { data: adminProfile } = await supabase.from('users').select('is_admin').eq('id', user.id).single()
+  if (!adminProfile?.is_admin) redirect('/')
 
   const phase = formData.get('phase') as Phase
   const deadlineAt = formData.get('deadline_at') as string
@@ -40,7 +42,9 @@ export async function upsertParticipantException(
 ): Promise<ActionResult> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user?.app_metadata?.is_admin) redirect('/')
+  if (!user) redirect('/login')
+  const { data: adminProfile } = await supabase.from('users').select('is_admin').eq('id', user.id).single()
+  if (!adminProfile?.is_admin) redirect('/')
 
   const userId = formData.get('user_id') as string
   const phase = formData.get('phase') as Phase
@@ -66,7 +70,9 @@ export async function upsertParticipantException(
 export async function deleteParticipantException(id: string, _formData: FormData): Promise<void> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user?.app_metadata?.is_admin) redirect('/')
+  if (!user) redirect('/login')
+  const { data: adminProfile } = await supabase.from('users').select('is_admin').eq('id', user.id).single()
+  if (!adminProfile?.is_admin) redirect('/')
 
   const admin = createAdminClient()
   await admin.from('participant_exceptions').delete().eq('id', id)
