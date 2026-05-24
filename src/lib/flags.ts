@@ -9,7 +9,7 @@ const TEAM_ISO: Record<string, string> = {
   MEX: 'mx', NED: 'nl', NOR: 'no', NZL: 'nz', PAN: 'pa',
   PAR: 'py', POR: 'pt', QAT: 'qa', RSA: 'za', SCO: 'gb-sct',
   SEN: 'sn', SUI: 'ch', SWE: 'se', TUN: 'tn', TUR: 'tr',
-  URU: 'uy', USA: 'us', UZB: 'uz',
+  URU: 'uy', URY: 'uy', USA: 'us', UZB: 'uz',
 }
 
 export function teamFlag(countryCode: string | null | undefined): string {
