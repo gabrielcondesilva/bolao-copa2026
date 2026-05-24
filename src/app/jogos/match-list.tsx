@@ -31,7 +31,7 @@ const PHASE_LABEL: Record<string, string> = {
 export function MatchList({ initialMatches, teams, phase }: Props) {
   const [matches, setMatches] = useState(initialMatches)
   const teamMap = new Map(teams.map(t => [t.id, t]))
-  if (teams.length > 0) console.log('[flags debug] sample team:', teams[0])
+  if (teams.length > 0) console.log('[flags debug] country_codes:', teams.slice(0, 5).map(t => `${t.name}=${t.country_code}`).join(', '))
 
   useEffect(() => { setMatches(initialMatches) }, [initialMatches])
 
@@ -143,9 +143,9 @@ function MatchCard({
             <span className="min-w-0 truncate text-sm font-bold text-zinc-900 sm:text-base">
               {home}
             </span>
-            {homeFlag && (
+            {homeFlag ? (
               <span className="shrink-0 text-lg leading-none" aria-hidden="true">{homeFlag}</span>
-            )}
+            ) : null}
           </div>
         </div>
 
@@ -170,9 +170,9 @@ function MatchCard({
         {/* Away */}
         <div className="min-w-0 flex-1 text-left">
           <div className="flex items-center gap-2">
-            {awayFlag && (
+            {awayFlag ? (
               <span className="shrink-0 text-lg leading-none" aria-hidden="true">{awayFlag}</span>
-            )}
+            ) : null}
             <span className="min-w-0 truncate text-sm font-bold text-zinc-900 sm:text-base">
               {away}
             </span>

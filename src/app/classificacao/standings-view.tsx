@@ -113,11 +113,11 @@ function GroupTable({ group, standings, flagMap }: { group: string; standings: G
               <td className="py-2 pl-3 pr-1">
                 <div className="flex items-center gap-1.5">
                   <span className="text-zinc-400">{s.position}</span>
-                  {teamFlag(flagMap.get(s.team.id)) && (
+                  {teamFlag(flagMap.get(s.team.id)) ? (
                     <span className="shrink-0 text-sm leading-none" aria-hidden="true">
                       {teamFlag(flagMap.get(s.team.id))}
                     </span>
-                  )}
+                  ) : null}
                   <span className="truncate font-medium text-zinc-900 max-w-[80px] sm:max-w-none">
                     {s.team.name}
                   </span>
