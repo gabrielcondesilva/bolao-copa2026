@@ -22,7 +22,7 @@ export async function toggleAward(
   const admin = createAdminClient()
   await admin
     .from('palpites_finais')
-    .update({ [field]: value })
+    .update({ [field]: value } as { artilheiro_correct?: boolean; best_player_correct?: boolean })
     .eq('user_id', userId)
 
   revalidatePath('/admin/premios')
