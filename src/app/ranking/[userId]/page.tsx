@@ -5,21 +5,8 @@ import Link from 'next/link'
 import { logout } from '@/app/actions/auth'
 import { computeRanking } from '@/lib/ranking'
 import { scoreMatch } from '@/lib/engines/scoring'
-
-const PHASE_LABEL: Record<string, string> = {
-  group_stage: 'Fase de Grupos',
-  round_of_32: '16-avos de Final',
-  round_of_16: 'Oitavas de Final',
-  quarterfinals: 'Quartas de Final',
-  semifinals: 'Semifinais',
-  third_place: 'Disputa de 3º Lugar',
-  final: 'Final',
-}
-
-const PHASE_ORDER = [
-  'group_stage', 'round_of_32', 'round_of_16',
-  'quarterfinals', 'semifinals', 'third_place', 'final',
-]
+import { PalpitesBreakdown } from './palpites-breakdown'
+import type { MatchRow } from './palpites-breakdown'
 
 export default async function ParticipantDetailPage({
   params,
@@ -79,19 +66,10 @@ export default async function ParticipantDetailPage({
     m => m.is_finished && m.home_score !== null && m.away_score !== null,
   )
 
-  // Build per-match detail, grouped by phase
-  const byPhase = new Map<string, Array<{
-    matchId: string
-    homeTeam: string
-    awayTeam: string
-    officialHome: number
-    officialAway: number
-    predictedHome: number | null
-    predictedAway: number | null
-    points: 0 | 5 | 10 | null
-  }>>()
+  // Build per-match detail, grouped by phase (sorted by scheduled_at)
+  const byPhaseMap = new Map<string, MatchRow[]>()
 
-  for (const m of finishedMatches) {
+  for (const m of [...finishedMatches].sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at))) {
     if (!m.home_team_id || !m.away_team_id) continue
     const p = palpiteMap.get(m.id)
     const filled = p && p.home_score !== null && p.away_score !== null
@@ -103,7 +81,7 @@ export default async function ParticipantDetailPage({
         )
       : null
 
-    const row = {
+    const row: MatchRow = {
       matchId: m.id,
       homeTeam: teamName.get(m.home_team_id) ?? '?',
       awayTeam: teamName.get(m.away_team_id) ?? '?',
@@ -114,9 +92,11 @@ export default async function ParticipantDetailPage({
       points: pts,
     }
 
-    if (!byPhase.has(m.phase)) byPhase.set(m.phase, [])
-    byPhase.get(m.phase)!.push(row)
+    if (!byPhaseMap.has(m.phase)) byPhaseMap.set(m.phase, [])
+    byPhaseMap.get(m.phase)!.push(row)
   }
+
+  const byPhase: Record<string, MatchRow[]> = Object.fromEntries(byPhaseMap)
 
   // Actual final positions (same logic as ranking.ts)
   const finalMatch = finishedMatches.find(m => m.phase === 'final')
@@ -256,57 +236,7 @@ export default async function ParticipantDetailPage({
         )}
 
         {/* Per-phase match breakdown */}
-        {PHASE_ORDER.map(phase => {
-          const rows = byPhase.get(phase)
-          if (!rows || rows.length === 0) return null
-          const phaseTotal = rows.reduce((s, r) => s + (r.points ?? 0), 0)
-          return (
-            <section key={phase}>
-              <div className="mb-3 flex items-center justify-between">
-                <h2 className="text-sm font-bold text-zinc-800">
-                  {PHASE_LABEL[phase] ?? phase}
-                </h2>
-                <span className="text-xs font-semibold text-zinc-500">{phaseTotal} pts</span>
-              </div>
-              <div className="overflow-hidden rounded-lg border border-zinc-200 bg-white">
-                <table className="w-full text-sm">
-                  <tbody className="divide-y divide-zinc-100">
-                    {rows.map(r => (
-                      <tr key={r.matchId}>
-                        {/* Teams + official score */}
-                        <td className="px-3 py-2.5 text-right text-xs font-medium text-zinc-700 w-[35%] truncate">
-                          {r.homeTeam}
-                        </td>
-                        <td className="px-1 py-2.5 text-center text-xs font-bold text-zinc-900 whitespace-nowrap">
-                          {r.officialHome} × {r.officialAway}
-                        </td>
-                        <td className="px-3 py-2.5 text-xs font-medium text-zinc-700 w-[35%] truncate">
-                          {r.awayTeam}
-                        </td>
-                        {/* Prediction */}
-                        <td className="px-2 py-2.5 text-center text-xs text-zinc-400 whitespace-nowrap">
-                          {r.predictedHome !== null && r.predictedAway !== null
-                            ? `${r.predictedHome}×${r.predictedAway}`
-                            : '—'}
-                        </td>
-                        {/* Points badge */}
-                        <td className="px-3 py-2.5 text-right">
-                          <PointsBadge pts={r.points} />
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-          )
-        })}
-
-        {byPhase.size === 0 && (
-          <div className="rounded-lg border border-zinc-200 bg-white px-4 py-12 text-center text-sm text-zinc-400">
-            Nenhum jogo encerrado ainda.
-          </div>
-        )}
+        <PalpitesBreakdown byPhase={byPhase} />
       </main>
     </div>
   )
@@ -341,20 +271,6 @@ function FinalRow({
   )
 }
 
-function PointsBadge({ pts }: { pts: 0 | 5 | 10 | null }) {
-  if (pts === null) return <span className="text-xs text-zinc-300">—</span>
-  if (pts === 10) return (
-    <span className="inline-block rounded-full bg-green-100 px-1.5 py-0.5 text-xs font-bold text-green-700">
-      10
-    </span>
-  )
-  if (pts === 5) return (
-    <span className="inline-block rounded-full bg-amber-100 px-1.5 py-0.5 text-xs font-bold text-amber-700">
-      5
-    </span>
-  )
-  return <span className="text-xs text-zinc-400">0</span>
-}
 
 function TabLink({ href, active, children }: { href: string; active?: boolean; children: React.ReactNode }) {
   return (

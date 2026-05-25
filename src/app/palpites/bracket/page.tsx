@@ -22,7 +22,7 @@ export default async function BracketPage() {
     supabase.from('users').select('name, is_admin').eq('id', user.id).single(),
     supabase.from('teams').select('id, name, group, fifa_ranking_reference'),
     supabase.from('matches').select('id, group, home_team_id, away_team_id, is_finished').eq('phase', 'group_stage'),
-    supabase.from('matches').select('id, phase, is_finished').neq('phase', 'group_stage'),
+    supabase.from('matches').select('id, phase, home_team_id, away_team_id, is_finished').neq('phase', 'group_stage').order('scheduled_at'),
     supabase.from('palpites_jogos').select('match_id, home_score, away_score').eq('user_id', user.id),
     supabase.from('bracket_overrides').select('*'),
     supabase.from('classifier_overrides').select('*'),
@@ -99,6 +99,21 @@ export default async function BracketPage() {
     (teams ?? []).map(t => [t.id, t.name]),
   )
 
+  // Real knockout match predictions grouped by phase (always-visible section)
+  const KNOCKOUT_PHASES = ['round_of_32', 'round_of_16', 'quarterfinals', 'semifinals', 'third_place', 'final'] as const
+  const knockoutByPhase: Record<string, { homeName: string; awayName: string; homeScore: number | null; awayScore: number | null }[]> = {}
+  for (const phase of KNOCKOUT_PHASES) {
+    const phaseMatches = (knockoutMatches ?? []).filter(m => m.phase === phase && (m.home_team_id || m.away_team_id))
+    if (phaseMatches.length > 0) {
+      knockoutByPhase[phase] = phaseMatches.map(m => ({
+        homeName: teamName[m.home_team_id ?? ''] ?? '—',
+        awayName: teamName[m.away_team_id ?? ''] ?? '—',
+        homeScore: palpiteMap.get(m.id)?.home_score ?? null,
+        awayScore: palpiteMap.get(m.id)?.away_score ?? null,
+      }))
+    }
+  }
+
   return (
     <div className="min-h-full bg-zinc-50">
       <header className="border-b border-zinc-200 bg-white">
@@ -153,6 +168,7 @@ export default async function BracketPage() {
             teamName={teamName}
             groupStageFinished={groupStageFinished}
             finishedPhases={finishedPhases}
+            knockoutByPhase={knockoutByPhase}
           />
         )}
       </main>

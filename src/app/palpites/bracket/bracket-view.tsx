@@ -1,40 +1,68 @@
 'use client'
 
+import { useState } from 'react'
 import type { SimulatedBracket, SimulatedKnockoutMatch } from '@/lib/engines/bracket-simulator'
+
+interface RealMatch {
+  homeName: string
+  awayName: string
+  homeScore: number | null
+  awayScore: number | null
+}
 
 interface Props {
   bracket: SimulatedBracket
   teamName: Record<string, string>
   groupStageFinished: boolean
   finishedPhases: Set<string>
+  knockoutByPhase: Record<string, RealMatch[]>
 }
 
 const PHASE_LABELS: Record<string, string> = {
-  round_of_32: '16-avos de Final',
-  round_of_16: 'Oitavas de Final',
+  round_of_32:   '16-avos de Final',
+  round_of_16:   'Oitavas de Final',
   quarterfinals: 'Quartas de Final',
-  semifinals: 'Semifinais',
+  semifinals:    'Semifinais',
+  final:         'Decisões',
 }
 
-export function BracketView({ bracket, teamName, groupStageFinished, finishedPhases }: Props) {
+const REVEAL_LABELS: Record<string, string> = {
+  round_of_32:   'Veja como ficaria seu 16-avos',
+  round_of_16:   'Veja como ficariam suas Oitavas',
+  quarterfinals: 'Veja como ficariam suas Quartas',
+  semifinals:    'Veja como ficariam as Semifinais',
+  final:         'Veja como ficariam as Decisões',
+}
+
+// Labels for the always-visible "real palpites" section
+const REAL_LABELS: Record<string, string> = {
+  round_of_32:   'Seus palpites — 16-avos',
+  round_of_16:   'Seus palpites — Oitavas',
+  quarterfinals: 'Seus palpites — Quartas',
+  semifinals:    'Seus palpites — Semifinais',
+  third_place:   'Seus palpites — 3º Lugar',
+  final:         'Seus palpites — Final',
+}
+
+export function BracketView({ bracket, teamName, groupStageFinished, finishedPhases, knockoutByPhase }: Props) {
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({})
+  const toggle = (phase: string) => setExpanded(p => ({ ...p, [phase]: !p[phase] }))
+
   const name = (id: string | null) => (id ? (teamName[id] ?? '?') : '—')
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4">
 
-      {/* Group stage qualifiers */}
+      {/* Group stage qualifiers — always visible */}
       <section>
-        <SectionHeader
-          title="Fase de Grupos — Classificados"
-          locked={groupStageFinished}
-        />
+        <SectionHeader title="Fase de Grupos — Classificados" locked={groupStageFinished} />
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
           {Object.entries(bracket.groups).map(([group, result]) => (
             <div key={group} className="overflow-hidden rounded-lg border border-zinc-200 bg-white">
               <div className="border-b border-zinc-100 bg-zinc-50 px-3 py-1.5">
                 <span className="text-xs font-bold text-zinc-500">Grupo {group}</span>
               </div>
-              <div className="px-3 py-2 space-y-1">
+              <div className="space-y-1 px-3 py-2">
                 {[result.first, result.second, result.third, result.fourth].map((teamId, i) => (
                   <div key={i} className="flex items-center gap-1.5 text-xs">
                     <span className="w-4 shrink-0 text-zinc-400">{i + 1}.</span>
@@ -49,15 +77,11 @@ export function BracketView({ bracket, teamName, groupStageFinished, finishedPha
           ))}
         </div>
 
-        {/* Best thirds */}
         <div className="mt-3">
           <p className="mb-2 text-xs font-medium text-zinc-500">Melhores 3ºs colocados (8 de 12)</p>
           <div className="flex flex-wrap gap-2">
             {bracket.bestThirds.slice(0, 8).map((t, i) => (
-              <span
-                key={t.teamId}
-                className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800"
-              >
+              <span key={t.teamId} className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800">
                 {i + 1}. {name(t.teamId)}
               </span>
             ))}
@@ -65,49 +89,77 @@ export function BracketView({ bracket, teamName, groupStageFinished, finishedPha
         </div>
       </section>
 
-      {/* Round of 32 */}
-      <KnockoutSection
-        title="16-avos de Final"
+      {/* 16-avos */}
+      <CollapsibleSection
         phase="round_of_32"
-        matches={bracket.round_of_32}
-        teamName={teamName}
+        isExpanded={!!expanded['round_of_32']}
+        onToggle={() => toggle('round_of_32')}
         locked={finishedPhases.has('round_of_32')}
-        cols={2}
-      />
+      >
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {bracket.round_of_32.map(m => (
+            <MatchCard key={m.matchNumber} match={m} teamName={teamName} />
+          ))}
+        </div>
+      </CollapsibleSection>
 
-      {/* Round of 16 */}
-      <KnockoutSection
-        title="Oitavas de Final"
+      <RealPalpitesSection phase="round_of_32" matches={knockoutByPhase['round_of_32']} />
+
+      {/* Oitavas */}
+      <CollapsibleSection
         phase="round_of_16"
-        matches={bracket.round_of_16}
-        teamName={teamName}
+        isExpanded={!!expanded['round_of_16']}
+        onToggle={() => toggle('round_of_16')}
         locked={finishedPhases.has('round_of_16')}
-        cols={2}
-      />
+      >
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {bracket.round_of_16.map(m => (
+            <MatchCard key={m.matchNumber} match={m} teamName={teamName} />
+          ))}
+        </div>
+      </CollapsibleSection>
 
-      {/* Quarterfinals */}
-      <KnockoutSection
-        title="Quartas de Final"
+      <RealPalpitesSection phase="round_of_16" matches={knockoutByPhase['round_of_16']} />
+
+      {/* Quartas */}
+      <CollapsibleSection
         phase="quarterfinals"
-        matches={bracket.quarter_finals}
-        teamName={teamName}
+        isExpanded={!!expanded['quarterfinals']}
+        onToggle={() => toggle('quarterfinals')}
         locked={finishedPhases.has('quarterfinals')}
-        cols={2}
-      />
+      >
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {bracket.quarter_finals.map(m => (
+            <MatchCard key={m.matchNumber} match={m} teamName={teamName} />
+          ))}
+        </div>
+      </CollapsibleSection>
 
-      {/* Semifinals */}
-      <KnockoutSection
-        title="Semifinais"
+      <RealPalpitesSection phase="quarterfinals" matches={knockoutByPhase['quarterfinals']} />
+
+      {/* Semifinais */}
+      <CollapsibleSection
         phase="semifinals"
-        matches={bracket.semi_finals}
-        teamName={teamName}
+        isExpanded={!!expanded['semifinals']}
+        onToggle={() => toggle('semifinals')}
         locked={finishedPhases.has('semifinals')}
-        cols={2}
-      />
+      >
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {bracket.semi_finals.map(m => (
+            <MatchCard key={m.matchNumber} match={m} teamName={teamName} />
+          ))}
+        </div>
+      </CollapsibleSection>
 
-      {/* Third place + Final */}
-      <section>
-        <SectionHeader title="Decisões" locked={finishedPhases.has('final')} />
+      <RealPalpitesSection phase="semifinals" matches={knockoutByPhase['semifinals']} />
+
+      {/* Decisões — third_place + final */}
+      <CollapsibleSection
+        phase="final"
+        isExpanded={!!expanded['final']}
+        onToggle={() => toggle('final')}
+        locked={finishedPhases.has('final')}
+      >
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
             <p className="mb-1.5 text-xs font-semibold text-zinc-500">Disputa de 3º Lugar</p>
@@ -118,10 +170,109 @@ export function BracketView({ bracket, teamName, groupStageFinished, finishedPha
             <MatchCard match={bracket.final} teamName={teamName} highlight />
           </div>
         </div>
-      </section>
+      </CollapsibleSection>
+
+      {/* Real third place + final palpites */}
+      {(knockoutByPhase['third_place']?.length || knockoutByPhase['final']?.length) ? (
+        <section className="space-y-2">
+          <RealPalpitesSection phase="third_place" matches={knockoutByPhase['third_place']} />
+          <RealPalpitesSection phase="final" matches={knockoutByPhase['final']} />
+        </section>
+      ) : null}
+
     </div>
   )
 }
+
+// ─── Real palpites section (always visible) ───────────────────────────────────
+
+function RealPalpitesSection({ phase, matches }: { phase: string; matches?: RealMatch[] }) {
+  if (!matches || matches.length === 0) return null
+
+  return (
+    <section>
+      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-400">
+        {REAL_LABELS[phase]}
+      </p>
+      <div className="overflow-hidden rounded-lg border border-zinc-200 bg-white">
+        {matches.map((m, i) => (
+          <div
+            key={i}
+            className={`flex items-center gap-2 px-4 py-3 ${i > 0 ? 'border-t border-zinc-100' : ''}`}
+          >
+            <span className="min-w-0 flex-1 truncate text-right text-sm font-semibold text-zinc-900">
+              {m.homeName}
+            </span>
+            <span className="w-16 shrink-0 text-center">
+              {m.homeScore !== null && m.awayScore !== null ? (
+                <span className="text-sm font-bold text-zinc-900">
+                  {m.homeScore} × {m.awayScore}
+                </span>
+              ) : (
+                <span className="text-xs text-zinc-300">? × ?</span>
+              )}
+            </span>
+            <span className="min-w-0 flex-1 truncate text-sm font-semibold text-zinc-900">
+              {m.awayName}
+            </span>
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+// ─── Collapsible simulation section ──────────────────────────────────────────
+
+function CollapsibleSection({
+  phase,
+  isExpanded,
+  onToggle,
+  locked,
+  children,
+}: {
+  phase: string
+  isExpanded: boolean
+  onToggle: () => void
+  locked: boolean
+  children: React.ReactNode
+}) {
+  if (!isExpanded) {
+    return (
+      <button
+        onClick={onToggle}
+        className="w-full flex items-center justify-center gap-2 rounded-xl border border-dashed border-zinc-300 bg-white px-4 py-4 text-sm font-medium text-zinc-500 transition-colors hover:border-green-500 hover:text-green-700"
+      >
+        {REVEAL_LABELS[phase]}
+        <span aria-hidden="true">→</span>
+      </button>
+    )
+  }
+
+  return (
+    <section>
+      <div className="mb-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <h3 className="text-sm font-bold text-zinc-800">{PHASE_LABELS[phase]}</h3>
+          {locked && (
+            <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-500">
+              finalizado
+            </span>
+          )}
+        </div>
+        <button
+          onClick={onToggle}
+          className="text-xs text-zinc-400 transition-colors hover:text-zinc-600"
+        >
+          recolher ▲
+        </button>
+      </div>
+      {children}
+    </section>
+  )
+}
+
+// ─── Section header ───────────────────────────────────────────────────────────
 
 function SectionHeader({ title, locked }: { title: string; locked: boolean }) {
   return (
@@ -136,31 +287,7 @@ function SectionHeader({ title, locked }: { title: string; locked: boolean }) {
   )
 }
 
-function KnockoutSection({
-  title,
-  matches,
-  teamName,
-  locked,
-  cols,
-}: {
-  title: string
-  phase: string
-  matches: SimulatedKnockoutMatch[]
-  teamName: Record<string, string>
-  locked: boolean
-  cols: number
-}) {
-  return (
-    <section>
-      <SectionHeader title={title} locked={locked} />
-      <div className={`grid gap-3 ${cols === 2 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
-        {matches.map(m => (
-          <MatchCard key={m.matchNumber} match={m} teamName={teamName} />
-        ))}
-      </div>
-    </section>
-  )
-}
+// ─── Match card (simulated) ───────────────────────────────────────────────────
 
 function MatchCard({
   match,
@@ -212,7 +339,7 @@ function MatchCard({
       </div>
 
       {match.winnerId && (
-        <div className="mt-1.5 text-center text-xs text-green-600 font-medium">
+        <div className="mt-1.5 text-center text-xs font-medium text-green-600">
           avança: {name(match.winnerId)}
         </div>
       )}
