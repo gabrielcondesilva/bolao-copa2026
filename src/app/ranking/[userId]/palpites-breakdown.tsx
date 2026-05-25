@@ -6,11 +6,12 @@ export interface MatchRow {
   matchId: string
   homeTeam: string
   awayTeam: string
-  officialHome: number
-  officialAway: number
+  officialHome: number | null
+  officialAway: number | null
   predictedHome: number | null
   predictedAway: number | null
   points: 0 | 5 | 10 | null
+  isFinished: boolean
 }
 
 const PHASE_LABEL: Record<string, string> = {
@@ -46,9 +47,10 @@ export function PalpitesBreakdown({ byPhase }: { byPhase: Record<string, MatchRo
         const rows = byPhase[phase]
         if (!rows || rows.length === 0) return null
 
-        const phaseTotal   = rows.reduce((s, r) => s + (r.points ?? 0), 0)
-        const exactCount   = rows.filter(r => r.points === 10).length
-        const correctCount = rows.filter(r => r.points === 5).length
+        const finishedRows = rows.filter(r => r.isFinished)
+        const phaseTotal   = finishedRows.reduce((s, r) => s + (r.points ?? 0), 0)
+        const exactCount   = finishedRows.filter(r => r.points === 10).length
+        const correctCount = finishedRows.filter(r => r.points === 5).length
         const isExpanded   = !!expanded[phase]
 
         return (
@@ -83,11 +85,12 @@ export function PalpitesBreakdown({ byPhase }: { byPhase: Record<string, MatchRo
               <div className="divide-y divide-zinc-100 border-t border-zinc-100">
                 {rows.map(r => {
                   const hasPalpite = r.predictedHome !== null && r.predictedAway !== null
-                  const borderClass =
-                    r.points === 10 ? 'border-l-4 border-l-green-500' :
-                    r.points === 5  ? 'border-l-4 border-l-blue-400'  :
-                    r.points === 0  ? 'border-l-4 border-l-red-400'   :
-                                      'border-l-4 border-l-zinc-200'
+                  const borderClass = !r.isFinished
+                    ? 'border-l-4 border-l-zinc-200'
+                    : r.points === 10 ? 'border-l-4 border-l-green-500'
+                    : r.points === 5  ? 'border-l-4 border-l-blue-400'
+                    : r.points === 0  ? 'border-l-4 border-l-red-400'
+                    :                   'border-l-4 border-l-zinc-200'
 
                   return (
                     <div key={r.matchId} className={`flex items-center gap-2 py-2.5 pr-3 pl-2 ${borderClass}`}>
@@ -101,9 +104,13 @@ export function PalpitesBreakdown({ byPhase }: { byPhase: Record<string, MatchRo
                         <div className="text-[10px] text-zinc-400">
                           {hasPalpite ? `${r.predictedHome}×${r.predictedAway}` : 'sem palpite'}
                         </div>
-                        <div className="text-xs font-bold text-zinc-900">
-                          {r.officialHome} × {r.officialAway}
-                        </div>
+                        {r.isFinished ? (
+                          <div className="text-xs font-bold text-zinc-900">
+                            {r.officialHome} × {r.officialAway}
+                          </div>
+                        ) : (
+                          <div className="text-[10px] text-zinc-300">a jogar</div>
+                        )}
                       </div>
 
                       {/* Away */}
@@ -113,7 +120,7 @@ export function PalpitesBreakdown({ byPhase }: { byPhase: Record<string, MatchRo
 
                       {/* Points badge */}
                       <div className="w-12 shrink-0 text-right">
-                        <PointsBadge pts={r.points} />
+                        {r.isFinished ? <PointsBadge pts={r.points} /> : <span className="text-xs text-zinc-300">—</span>}
                       </div>
                     </div>
                   )

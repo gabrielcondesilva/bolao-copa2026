@@ -164,13 +164,11 @@ function MatchCard({
         {/* Center: score or time */}
         <div className="w-24 shrink-0 text-center sm:w-28">
           {match.is_finished ? (
-            <div className="rounded-lg bg-zinc-900 px-2 py-1.5">
-              <span className="text-xl font-black tabular-nums text-white sm:text-2xl">
-                {match.home_score}
-                <span className="mx-1 text-zinc-500">–</span>
-                {match.away_score}
-              </span>
-            </div>
+            <span className="text-xl font-black tabular-nums text-zinc-900 sm:text-2xl">
+              {match.home_score}
+              <span className="mx-1 text-zinc-400">–</span>
+              {match.away_score}
+            </span>
           ) : (
             <span className="text-base font-bold tabular-nums text-zinc-700" suppressHydrationWarning>
               {time}

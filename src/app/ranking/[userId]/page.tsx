@@ -66,16 +66,20 @@ export default async function ParticipantDetailPage({
     m => m.is_finished && m.home_score !== null && m.away_score !== null,
   )
 
-  // Build per-match detail, grouped by phase (sorted by scheduled_at)
+  // Build per-match detail — includes all matches with a palpite OR that are finished
   const byPhaseMap = new Map<string, MatchRow[]>()
 
-  for (const m of [...finishedMatches].sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at))) {
+  for (const m of [...(allMatches ?? [])].sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at))) {
     if (!m.home_team_id || !m.away_team_id) continue
     const p = palpiteMap.get(m.id)
-    const filled = p && p.home_score !== null && p.away_score !== null
-    const pts = filled
+    const hasPalpite = p != null && p.home_score !== null && p.away_score !== null
+    const isFinished = !!(m.is_finished && m.home_score !== null && m.away_score !== null)
+
+    if (!isFinished && !hasPalpite) continue
+
+    const pts: 0 | 5 | 10 | null = (isFinished && hasPalpite)
       ? scoreMatch(
-          { home: p.home_score!, away: p.away_score! },
+          { home: p!.home_score!, away: p!.away_score! },
           { home: m.home_score!, away: m.away_score! },
           m.went_to_extra_time,
         )
@@ -85,11 +89,12 @@ export default async function ParticipantDetailPage({
       matchId: m.id,
       homeTeam: teamName.get(m.home_team_id) ?? '?',
       awayTeam: teamName.get(m.away_team_id) ?? '?',
-      officialHome: m.home_score!,
-      officialAway: m.away_score!,
+      officialHome: isFinished ? m.home_score! : null,
+      officialAway: isFinished ? m.away_score! : null,
       predictedHome: p?.home_score ?? null,
       predictedAway: p?.away_score ?? null,
       points: pts,
+      isFinished,
     }
 
     if (!byPhaseMap.has(m.phase)) byPhaseMap.set(m.phase, [])
@@ -97,6 +102,23 @@ export default async function ParticipantDetailPage({
   }
 
   const byPhase: Record<string, MatchRow[]> = Object.fromEntries(byPhaseMap)
+
+  const PHASE_BREAKDOWN = [
+    { phase: 'group_stage',   label: 'Fase de Grupos' },
+    { phase: 'round_of_32',   label: '16-avos' },
+    { phase: 'round_of_16',   label: 'Oitavas' },
+    { phase: 'quarterfinals', label: 'Quartas' },
+    { phase: 'semifinals',    label: 'Semis' },
+    { phase: 'third_place',   label: '3º Lugar' },
+    { phase: 'final',         label: 'Final' },
+  ]
+
+  const phaseMatchPoints: Record<string, number> = {}
+  for (const [phase, rows] of byPhaseMap) {
+    phaseMatchPoints[phase] = rows
+      .filter(r => r.isFinished)
+      .reduce((s, r) => s + (r.points ?? 0), 0)
+  }
 
   // Actual final positions (same logic as ranking.ts)
   const finalMatch = finishedMatches.find(m => m.phase === 'final')
@@ -175,9 +197,11 @@ export default async function ParticipantDetailPage({
         </div>
 
         {/* Summary cards */}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <StatCard label="Fase de Grupos" value={entry.groupPoints} />
-          <StatCard label="Eliminatórias" value={entry.knockoutPoints} />
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {PHASE_BREAKDOWN.map(({ phase, label }) => {
+            if (!byPhase[phase]) return null
+            return <StatCard key={phase} label={label} value={phaseMatchPoints[phase] ?? 0} />
+          })}
           <StatCard label="Classificados" value={entry.classificationPoints} />
           <StatCard label="Palpite Final" value={entry.finalPoints} />
         </div>
@@ -201,38 +225,38 @@ export default async function ParticipantDetailPage({
             <div className="overflow-hidden rounded-lg border border-zinc-200 bg-white">
               <div className="divide-y divide-zinc-100">
                 <FinalRow
-                  label="Campeão (40 pts)"
+                  label="Campeão"
                   team={palpiteFinal.champion_team_id ? (teamName.get(palpiteFinal.champion_team_id) ?? '?') : '—'}
                   hit={!!actualChampion && palpiteFinal.champion_team_id === actualChampion}
                   known={!!actualChampion}
                 />
                 <FinalRow
-                  label="Vice (20 pts)"
+                  label="Vice"
                   team={palpiteFinal.runner_up_team_id ? (teamName.get(palpiteFinal.runner_up_team_id) ?? '?') : '—'}
                   hit={!!actualRunnerUp && palpiteFinal.runner_up_team_id === actualRunnerUp}
                   known={!!actualRunnerUp}
                 />
                 <FinalRow
-                  label="3º Lugar (10 pts)"
+                  label="3º Lugar"
                   team={palpiteFinal.third_team_id ? (teamName.get(palpiteFinal.third_team_id) ?? '?') : '—'}
                   hit={!!actualThird && palpiteFinal.third_team_id === actualThird}
                   known={!!actualThird}
                 />
                 <FinalRow
-                  label="4º Lugar (5 pts)"
+                  label="4º Lugar"
                   team={palpiteFinal.fourth_team_id ? (teamName.get(palpiteFinal.fourth_team_id) ?? '?') : '—'}
                   hit={!!actualFourth && palpiteFinal.fourth_team_id === actualFourth}
                   known={!!actualFourth}
                 />
                 {palpiteFinal.top_scorer && (
                   <div className="flex items-center justify-between px-4 py-2.5 text-sm">
-                    <span className="text-zinc-500">Artilheiro (10 pts)</span>
+                    <span className="text-zinc-500">Artilheiro</span>
                     <span className="font-medium text-zinc-900">{palpiteFinal.top_scorer}</span>
                   </div>
                 )}
                 {palpiteFinal.best_player && (
                   <div className="flex items-center justify-between px-4 py-2.5 text-sm">
-                    <span className="text-zinc-500">Craque (10 pts)</span>
+                    <span className="text-zinc-500">Craque</span>
                     <span className="font-medium text-zinc-900">{palpiteFinal.best_player}</span>
                   </div>
                 )}
