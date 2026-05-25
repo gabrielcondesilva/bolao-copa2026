@@ -23,7 +23,7 @@ export default function DeleteParticipantButton({ userId, name }: { userId: stri
     <>
       <button
         onClick={() => { setError(null); setOpen(true) }}
-        className="text-xs text-red-500 hover:text-red-700"
+        className="rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700"
       >
         Excluir
       </button>

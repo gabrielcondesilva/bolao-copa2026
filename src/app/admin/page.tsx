@@ -85,7 +85,7 @@ export default async function AdminPage() {
                   <td className="px-4 py-3 text-zinc-400">
                     {new Date(p.created_at).toLocaleDateString('pt-BR')}
                   </td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-4 py-3 text-center">
                     {!p.is_admin && (
                       <DeleteParticipantButton userId={p.id} name={p.name} />
                     )}
