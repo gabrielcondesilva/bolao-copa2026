@@ -36,7 +36,7 @@ export async function upsertPhaseDeadline(
   return { success: true }
 }
 
-export async function upsertParticipantException(
+export async function upsertGlobalException(
   _prev: ActionResult,
   formData: FormData,
 ): Promise<ActionResult> {
@@ -46,28 +46,27 @@ export async function upsertParticipantException(
   const { data: adminProfile } = await supabase.from('users').select('is_admin').eq('id', user.id).single()
   if (!adminProfile?.is_admin) redirect('/')
 
-  const userId = formData.get('user_id') as string
   const phase = formData.get('phase') as Phase
   const unlockedUntil = formData.get('unlocked_until') as string
-
-  if (!userId || !phase || !unlockedUntil) return { error: 'Todos os campos são obrigatórios.' }
+  if (!phase || !unlockedUntil) return { error: 'Todos os campos são obrigatórios.' }
 
   const isoString = new Date(unlockedUntil + 'Z').toISOString()
 
   const admin = createAdminClient()
-  const { error } = await admin
-    .from('participant_exceptions')
-    .upsert(
-      { user_id: userId, phase, unlocked_until: isoString },
-      { onConflict: 'user_id,phase' },
-    )
+  const { data: participants } = await admin.from('users').select('id').eq('is_admin', false)
+  if (!participants?.length) return { error: 'Nenhum participante encontrado.' }
+
+  // Remove exceções anteriores para esta fase e recria para todos
+  await admin.from('participant_exceptions').delete().eq('phase', phase)
+  const rows = participants.map(p => ({ user_id: p.id, phase, unlocked_until: isoString }))
+  const { error } = await admin.from('participant_exceptions').insert(rows)
 
   if (error) return { error: error.message }
   revalidatePath('/admin/prazos')
   return { success: true }
 }
 
-export async function deleteParticipantException(id: string, _formData: FormData): Promise<void> {
+export async function deleteGlobalExceptions(phase: string, _formData: FormData): Promise<void> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -75,6 +74,6 @@ export async function deleteParticipantException(id: string, _formData: FormData
   if (!adminProfile?.is_admin) redirect('/')
 
   const admin = createAdminClient()
-  await admin.from('participant_exceptions').delete().eq('id', id)
+  await admin.from('participant_exceptions').delete().eq('phase', phase)
   revalidatePath('/admin/prazos')
 }

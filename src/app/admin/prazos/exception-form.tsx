@@ -1,7 +1,7 @@
 'use client'
 
 import { useActionState } from 'react'
-import { upsertParticipantException } from '@/app/actions/deadlines'
+import { upsertGlobalException } from '@/app/actions/deadlines'
 
 const PHASES = [
   { value: 'group_stage',   label: 'Fase de Grupos' },
@@ -13,28 +13,11 @@ const PHASES = [
   { value: 'final',        label: 'Final' },
 ]
 
-interface Participant { id: string; name: string }
-
-export function ExceptionForm({ participants }: { participants: Participant[] }) {
-  const [state, action, pending] = useActionState(upsertParticipantException, undefined)
+export function ExceptionForm() {
+  const [state, action, pending] = useActionState(upsertGlobalException, undefined)
 
   return (
     <form action={action} className="flex flex-wrap items-end gap-3">
-      <div className="flex flex-col gap-1">
-        <label className="text-xs font-medium text-zinc-600">Participante</label>
-        <select
-          name="user_id"
-          required
-          defaultValue=""
-          className="rounded border border-zinc-300 px-2 py-1.5 text-sm outline-none focus:border-green-600 focus:ring-1 focus:ring-green-600"
-        >
-          <option value="" disabled>Selecionar…</option>
-          {participants.map(p => (
-            <option key={p.id} value={p.id}>{p.name}</option>
-          ))}
-        </select>
-      </div>
-
       <div className="flex flex-col gap-1">
         <label className="text-xs font-medium text-zinc-600">Fase</label>
         <select
@@ -66,7 +49,7 @@ export function ExceptionForm({ participants }: { participants: Participant[] })
           disabled={pending}
           className="rounded bg-green-700 px-4 py-2 text-sm font-semibold text-white hover:bg-green-800 disabled:opacity-50"
         >
-          {pending ? '…' : 'Conceder exceção'}
+          {pending ? '…' : 'Salvar edição de prazo'}
         </button>
         {state && 'success' in state && (
           <span className="text-sm text-green-600">✓ Salvo</span>

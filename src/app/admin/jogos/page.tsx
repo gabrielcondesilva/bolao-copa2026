@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { logout } from '@/app/actions/auth'
 import { MatchForm } from './match-form'
 import { SyncButton } from './sync-button'
+import { teamFlag } from '@/lib/flags'
 
 const PHASES = [
   { value: 'group_stage',  label: 'Fase de Grupos' },
@@ -47,9 +48,10 @@ export default async function AdminJogosPage({
     matches?.flatMap(m => [m.home_team_id, m.away_team_id]).filter((id): id is string => id !== null) ?? []
   )]
   const { data: teamsData } = teamIds.length > 0
-    ? await supabase.from('teams').select('id, name').in('id', teamIds)
-    : { data: [] as { id: string; name: string }[] }
+    ? await supabase.from('teams').select('id, name, country_code').in('id', teamIds)
+    : { data: [] as { id: string; name: string; country_code: string | null }[] }
   const teamName = new Map(teamsData?.map(t => [t.id, t.name]) ?? [])
+  const teamCode = new Map(teamsData?.map(t => [t.id, t.country_code]) ?? [])
 
   return (
     <div className="min-h-full bg-zinc-50">
@@ -125,6 +127,8 @@ export default async function AdminJogosPage({
                 {matches.map(match => {
                   const home = teamName.get(match.home_team_id ?? '') ?? '—'
                   const away = teamName.get(match.away_team_id ?? '') ?? '—'
+                  const homeFlag = teamFlag(teamCode.get(match.home_team_id ?? ''))
+                  const awayFlag = teamFlag(teamCode.get(match.away_team_id ?? ''))
                   const date = new Date(match.scheduled_at).toLocaleString('pt-BR', {
                     day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
                   })
@@ -135,14 +139,24 @@ export default async function AdminJogosPage({
                         <td className="px-4 py-3 font-medium text-zinc-400">{match.group}</td>
                       )}
                       <td className="px-4 py-3 text-zinc-500 text-xs whitespace-nowrap">{date}</td>
-                      <td className="px-4 py-3 text-right font-medium text-zinc-900">{home}</td>
+                      <td className="px-4 py-3 text-right font-medium text-zinc-900">
+                          <span className="inline-flex items-center justify-end gap-1.5">
+                            {home}
+                            {homeFlag && <span className={`fi fi-${homeFlag} shrink-0 rounded-sm`} style={{ fontSize: '0.875rem' }} aria-hidden="true" />}
+                          </span>
+                        </td>
                       <td className="px-4 py-3 text-center text-zinc-400">
                         {match.is_finished
                           ? <span className="font-semibold text-zinc-900">{match.home_score} × {match.away_score}</span>
                           : <span className="text-zinc-300">— × —</span>
                         }
                       </td>
-                      <td className="px-4 py-3 font-medium text-zinc-900">{away}</td>
+                      <td className="px-4 py-3 font-medium text-zinc-900">
+                          <span className="inline-flex items-center gap-1.5">
+                            {awayFlag && <span className={`fi fi-${awayFlag} shrink-0 rounded-sm`} style={{ fontSize: '0.875rem' }} aria-hidden="true" />}
+                            {away}
+                          </span>
+                        </td>
                       <td className="px-4 py-3">
                         <MatchForm
                           matchId={match.id}

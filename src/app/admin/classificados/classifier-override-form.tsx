@@ -3,15 +3,6 @@
 import { useActionState, useState } from 'react'
 import { saveClassifierOverride } from '@/app/actions/overrides'
 
-const PHASES = [
-  { value: 'round_of_32',   label: '16-avos — Melhores 3ºs (8)' },
-  { value: 'round_of_16',   label: 'Oitavas de Final' },
-  { value: 'quarterfinals', label: 'Quartas de Final' },
-  { value: 'semifinals',    label: 'Semifinais' },
-  { value: 'third_place',   label: 'Disputa de 3º Lugar' },
-  { value: 'final',         label: 'Final' },
-]
-
 interface Team { id: string; name: string }
 
 export function ClassifierOverrideForm({ teams }: { teams: Team[] }) {
@@ -24,17 +15,10 @@ export function ClassifierOverrideForm({ teams }: { teams: Team[] }) {
 
   return (
     <form action={action} className="space-y-4">
-      <div className="max-w-xs">
-        <label className="mb-1 block text-xs font-medium text-zinc-600">Fase</label>
-        <select name="phase" required className="w-full rounded border border-zinc-200 px-2 py-1.5 text-sm text-zinc-900 focus:border-green-500 focus:outline-none">
-          {PHASES.map(p => (
-            <option key={p.value} value={p.value}>{p.label}</option>
-          ))}
-        </select>
-      </div>
+      <input type="hidden" name="phase" value="round_of_32" />
 
       <div className="space-y-2">
-        <p className="text-xs font-medium text-zinc-600">Times classificados (em ordem)</p>
+        <p className="text-xs font-medium text-zinc-600">8 melhores 3ºs colocados (em ordem conforme FIFA)</p>
         {slots.map((val, i) => (
           <div key={i} className="flex items-center gap-2">
             <span className="w-6 shrink-0 text-right text-xs text-zinc-400">{i + 1}.</span>
@@ -71,7 +55,7 @@ export function ClassifierOverrideForm({ teams }: { teams: Team[] }) {
           disabled={pending}
           className="rounded bg-green-700 px-4 py-1.5 text-sm font-semibold text-white hover:bg-green-800 disabled:opacity-50"
         >
-          {pending ? 'Salvando…' : 'Salvar Override'}
+          {pending ? 'Salvando…' : 'Salvar'}
         </button>
         {state && 'error' in state && (
           <p className="text-sm text-red-600">{state.error}</p>

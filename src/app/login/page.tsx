@@ -20,6 +20,7 @@ export default function LoginPage() {
             width={96}
             height={96}
             className="mx-auto mb-4 drop-shadow-sm"
+            priority
           />
           <h1 className="text-2xl font-extrabold tracking-tight text-zinc-900">
             Bolão <span className="text-green-700">Copa 2026</span>

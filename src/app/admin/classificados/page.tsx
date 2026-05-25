@@ -58,10 +58,9 @@ export default async function AdminClassificadosPage() {
         {/* ── Bracket Overrides ─────────────────────────────────────────────── */}
         <section>
           <div className="mb-4">
-            <h2 className="text-base font-semibold text-zinc-900">Override de Bracket</h2>
+            <h2 className="text-base font-semibold text-zinc-900">Edição de Bracket</h2>
             <p className="text-xs text-zinc-500 mt-0.5">
-              Define manualmente quais times jogam em cada slot de uma fase eliminatória.
-              Sobrescreve o bracket derivado automaticamente pelo simulador.
+              Define quais times jogam em cada vaga de uma fase eliminatória, sobrescrevendo o bracket gerado automaticamente.
             </p>
           </div>
 
@@ -115,10 +114,9 @@ export default async function AdminClassificadosPage() {
         {/* ── Classifier Overrides ──────────────────────────────────────────── */}
         <section>
           <div className="mb-4">
-            <h2 className="text-base font-semibold text-zinc-900">Override de Classificados</h2>
+            <h2 className="text-base font-semibold text-zinc-900">Edição de Classificados</h2>
             <p className="text-xs text-zinc-500 mt-0.5">
-              Define a ordem dos times classificados em uma fase quando o critério automático
-              não consegue desempatar (ex: melhores 3ºs colocados da fase de grupos).
+              Define a ordem dos 8 melhores 3ºs colocados que avançam para os 16-avos, conforme divulgação da FIFA após a fase de grupos.
             </p>
           </div>
 
@@ -128,17 +126,13 @@ export default async function AdminClassificadosPage() {
               <table className="w-full text-sm">
                 <thead className="border-b border-zinc-100 bg-zinc-50">
                   <tr>
-                    <th className="px-4 py-2.5 text-left text-xs font-medium text-zinc-500">Fase</th>
-                    <th className="px-4 py-2.5 text-left text-xs font-medium text-zinc-500">Times (em ordem)</th>
+                    <th className="px-4 py-2.5 text-left text-xs font-medium text-zinc-500">8 melhores 3ºs colocados (em ordem)</th>
                     <th className="px-4 py-2.5" />
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-100">
                   {(classifierOverrides ?? []).map(o => (
                     <tr key={o.id} className="hover:bg-zinc-50">
-                      <td className="px-4 py-3 text-zinc-700 align-top whitespace-nowrap">
-                        {PHASE_LABEL[o.phase] ?? o.phase}
-                      </td>
                       <td className="px-4 py-3">
                         <ol className="list-decimal list-inside space-y-0.5 text-xs text-zinc-700">
                           {o.ordered_team_ids.map((id, i) => (

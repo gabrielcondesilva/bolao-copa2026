@@ -1,11 +1,9 @@
-﻿import { createClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { logout } from '@/app/actions/auth'
-import { deleteParticipantException } from '@/app/actions/deadlines'
 import { DeadlineRow } from './deadline-row'
-import { ExceptionForm } from './exception-form'
 
 const PHASES = [
   { value: 'group_stage',   label: 'Fase de Grupos' },
@@ -17,7 +15,6 @@ const PHASES = [
   { value: 'final',        label: 'Final' },
 ] as const
 
-const PHASE_LABELS: Record<string, string> = Object.fromEntries(PHASES.map(p => [p.value, p.label]))
 
 export default async function AdminPrazosPage() {
   const supabase = await createClient()
@@ -26,13 +23,19 @@ export default async function AdminPrazosPage() {
   const { data: adminProfile } = await supabase.from('users').select('is_admin').eq('id', user.id).single()
   if (!adminProfile?.is_admin) redirect('/')
 
-  const [{ data: deadlines }, { data: exceptions }, { data: participants }] = await Promise.all([
+  const admin = createAdminClient()
+  const [{ data: deadlines }, { data: firstMatches }] = await Promise.all([
     supabase.from('phase_deadlines').select('phase, deadline_at'),
-    supabase.from('participant_exceptions').select('id, phase, unlocked_until, users(name)').order('phase'),
-    supabase.from('users').select('id, name').eq('is_admin', false).order('name'),
+    admin.from('matches').select('phase, scheduled_at').order('scheduled_at', { ascending: true }),
   ])
 
   const deadlineMap = new Map(deadlines?.map(d => [d.phase, d.deadline_at]) ?? [])
+
+  // First match per phase
+  const firstMatchMap = new Map<string, string>()
+  for (const m of firstMatches ?? []) {
+    if (!firstMatchMap.has(m.phase)) firstMatchMap.set(m.phase, m.scheduled_at)
+  }
 
   return (
     <div className="min-h-full bg-zinc-50">
@@ -79,9 +82,9 @@ export default async function AdminPrazosPage() {
             <table className="w-full text-sm">
               <thead className="border-b border-zinc-200 bg-zinc-50">
                 <tr>
-                  <th className="px-4 py-3 text-left font-medium text-zinc-600 w-40">Fase</th>
-                  <th className="px-4 py-3 text-left font-medium text-zinc-600">Prazo (UTC)</th>
-                  <th className="px-4 py-3 text-left font-medium text-zinc-600"></th>
+                  <th className="px-4 py-3 text-left font-medium text-zinc-600 w-36">Fase</th>
+                  <th className="px-4 py-3 text-left font-medium text-zinc-600 w-36">1º Jogo (UTC)</th>
+                  <th className="px-4 py-3 text-left font-medium text-zinc-600" colSpan={2}>Prazo (UTC)</th>
                 </tr>
               </thead>
               <tbody>
@@ -91,6 +94,7 @@ export default async function AdminPrazosPage() {
                     phase={p.value}
                     label={p.label}
                     currentDeadline={deadlineMap.get(p.value) ?? null}
+                    firstMatchAt={firstMatchMap.get(p.value) ?? null}
                   />
                 ))}
               </tbody>
@@ -98,69 +102,6 @@ export default async function AdminPrazosPage() {
           </div>
         </section>
 
-        {/* Participant exceptions */}
-        <section>
-          <div className="mb-4">
-            <h2 className="text-base font-semibold text-zinc-900">Exceções de Prazo</h2>
-            <p className="mt-1 text-sm text-zinc-500">
-              Permite que um participante específico edite palpites além do prazo global até o horário definido.
-            </p>
-          </div>
-
-          <div className="mb-6 rounded-lg border border-zinc-200 bg-white px-4 py-4">
-            <ExceptionForm participants={participants ?? []} />
-          </div>
-
-          {exceptions && exceptions.length > 0 ? (
-            <div className="overflow-hidden rounded-lg border border-zinc-200 bg-white">
-              <table className="w-full text-sm">
-                <thead className="border-b border-zinc-200 bg-zinc-50">
-                  <tr>
-                    <th className="px-4 py-3 text-left font-medium text-zinc-600">Participante</th>
-                    <th className="px-4 py-3 text-left font-medium text-zinc-600">Fase</th>
-                    <th className="px-4 py-3 text-left font-medium text-zinc-600">Liberar até (UTC)</th>
-                    <th className="px-4 py-3"></th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-zinc-100">
-                  {exceptions.map(ex => {
-                    const isActive = new Date(ex.unlocked_until) > new Date()
-                    const deleteAction = deleteParticipantException.bind(null, ex.id)
-                    const name = Array.isArray(ex.users) ? ex.users[0]?.name : (ex.users as { name: string } | null)?.name
-                    return (
-                      <tr key={ex.id} className={isActive ? '' : 'opacity-50'}>
-                        <td className="px-4 py-3 font-medium text-zinc-900">{name ?? '—'}</td>
-                        <td className="px-4 py-3 text-zinc-600">{PHASE_LABELS[ex.phase] ?? ex.phase}</td>
-                        <td className="px-4 py-3 text-zinc-500 text-xs">
-                          {new Date(ex.unlocked_until).toISOString().slice(0, 16).replace('T', ' ')}
-                          {isActive && (
-                            <span className="ml-2 rounded-full bg-green-100 px-2 py-0.5 text-green-700 font-medium">
-                              ativa
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          <form action={deleteAction}>
-                            <button
-                              type="submit"
-                              className="text-xs text-red-500 hover:text-red-700"
-                            >
-                              Remover
-                            </button>
-                          </form>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="rounded-lg border border-zinc-200 bg-white px-4 py-8 text-center text-sm text-zinc-400">
-              Nenhuma exceção cadastrada.
-            </div>
-          )}
-        </section>
       </main>
     </div>
   )
