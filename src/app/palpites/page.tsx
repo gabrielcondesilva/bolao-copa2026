@@ -98,8 +98,8 @@ export default async function PalpitesPage({
       ? supabase.from('palpites_jogos').select('*').eq('user_id', user.id).in('match_id', matchIds)
       : { data: [] },
     teamIds.length > 0
-      ? supabase.from('teams').select('id, name').in('id', teamIds)
-      : { data: [] as { id: string; name: string }[] },
+      ? supabase.from('teams').select('id, name, country_code').in('id', teamIds)
+      : { data: [] as { id: string; name: string; country_code: string }[] },
   ])
 
   const deadlineAt = activePhase === 'group_stage'
