@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { logout } from '@/app/actions/auth'
+import DeleteParticipantButton from './components/DeleteParticipantButton'
 
 export default async function AdminPage() {
   const supabase = await createClient()
@@ -71,6 +72,7 @@ export default async function AdminPage() {
                 <th className="px-4 py-3 text-left font-medium text-zinc-600">Nome</th>
                 <th className="px-4 py-3 text-left font-medium text-zinc-600">Perfil</th>
                 <th className="px-4 py-3 text-left font-medium text-zinc-600">Cadastrado em</th>
+                <th className="px-4 py-3" />
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100">
@@ -83,11 +85,16 @@ export default async function AdminPage() {
                   <td className="px-4 py-3 text-zinc-400">
                     {new Date(p.created_at).toLocaleDateString('pt-BR')}
                   </td>
+                  <td className="px-4 py-3 text-right">
+                    {!p.is_admin && (
+                      <DeleteParticipantButton userId={p.id} name={p.name} />
+                    )}
+                  </td>
                 </tr>
               ))}
               {!participants?.length && (
                 <tr>
-                  <td colSpan={3} className="px-4 py-6 text-center text-zinc-400">
+                  <td colSpan={4} className="px-4 py-6 text-center text-zinc-400">
                     Nenhum participante cadastrado.
                   </td>
                 </tr>
