@@ -46,6 +46,7 @@ export default async function AdminClassificadosPage() {
           <Link href="/admin/importar" className="text-sm text-zinc-500 hover:text-zinc-700">Importar</Link>
           <Link href="/admin/prazos" className="text-sm text-zinc-500 hover:text-zinc-700">Prazos</Link>
           <Link href="/admin/classificados" className="text-sm font-medium text-green-700">Classificados</Link>
+          <Link href="/jogos" className="text-sm font-medium text-blue-600 hover:text-blue-700">Ver bolão →</Link>
           <form action={logout}>
             <button type="submit" className="text-sm text-zinc-500 hover:text-zinc-700">Sair</button>
           </form>

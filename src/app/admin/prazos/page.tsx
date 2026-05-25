@@ -54,6 +54,9 @@ export default async function AdminPrazosPage() {
           <Link href="/admin/classificados" className="text-sm text-zinc-500 hover:text-zinc-700">
             Classificados
           </Link>
+          <Link href="/jogos" className="text-sm font-medium text-blue-600 hover:text-blue-700">
+            Ver bolão →
+          </Link>
           <form action={logout}>
             <button type="submit" className="text-sm text-zinc-500 hover:text-zinc-700">
               Sair

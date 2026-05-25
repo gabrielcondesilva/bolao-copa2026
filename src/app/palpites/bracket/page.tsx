@@ -118,7 +118,13 @@ export default async function BracketPage() {
     <div className="min-h-full bg-zinc-50">
       <header className="border-b border-zinc-200 bg-white">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3 sm:px-6">
-          <span className="text-base font-bold text-zinc-900">Bolão Copa 2026</span>
+          <Link href="/jogos" className="flex items-center gap-2.5">
+              <img src="/logo.png" alt="" width={32} height={32} className="shrink-0" />
+              <div className="flex items-baseline gap-1 leading-none">
+                <span className="text-base font-extrabold tracking-tight text-zinc-900">Bolão</span>
+                <span className="text-base font-extrabold tracking-tight text-green-700">Copa 2026</span>
+              </div>
+            </Link>
           <div className="flex items-center gap-3 sm:gap-4">
             <span className="hidden text-sm text-zinc-600 sm:block">{profile?.name}</span>
             {profile?.is_admin && (
