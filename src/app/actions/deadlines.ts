@@ -66,7 +66,7 @@ export async function upsertGlobalException(
   return { success: true }
 }
 
-export async function deleteGlobalExceptions(phase: string, _formData: FormData): Promise<void> {
+export async function deleteGlobalExceptions(phase: Phase, _formData: FormData): Promise<void> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
