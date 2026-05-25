@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { VENUES_BY_EXTERNAL_ID } from '@/lib/data/venues-2026'
 
 type Phase = 'group_stage' | 'round_of_32' | 'round_of_16' | 'quarterfinals' | 'semifinals' | 'third_place' | 'final'
 
@@ -169,7 +170,7 @@ export async function importMatches(
       home_team_id: homeId,
       away_team_id: awayId,
       scheduled_at: m.utcDate,
-      stadium: m.venue ?? null,
+      stadium: m.venue || VENUES_BY_EXTERNAL_ID[m.id] || null,
       external_id: m.id,
     }
 

@@ -28,6 +28,27 @@ const PHASE_LABEL: Record<string, string> = {
   final:         'Final',
 }
 
+// FIFA 2026 venue → city, state/country
+const VENUE_LOCATION: Record<string, string> = {
+  'MetLife Stadium':        'East Rutherford, NJ',
+  'AT&T Stadium':           'Arlington, TX',
+  'SoFi Stadium':           'Inglewood, CA',
+  "Levi's Stadium":         'Santa Clara, CA',
+  'Hard Rock Stadium':      'Miami Gardens, FL',
+  'Gillette Stadium':       'Foxborough, MA',
+  'Lincoln Financial Field':'Philadelphia, PA',
+  'Arrowhead Stadium':      'Kansas City, MO',
+  'State Farm Stadium':     'Glendale, AZ',
+  'NRG Stadium':            'Houston, TX',
+  'Lumen Field':            'Seattle, WA',
+  'BC Place':               'Vancouver, BC',
+  'BMO Field':              'Toronto, ON',
+  'Estadio Azteca':         'Cidade do México, MX',
+  'Estadio BBVA':           'Monterrey, MX',
+  'Estadio Akron':          'Guadalajara, MX',
+  'Mercedes-Benz Stadium':  'Atlanta, GA',
+}
+
 export function MatchList({ initialMatches, teams, phase }: Props) {
   const [matches, setMatches] = useState(initialMatches)
   const teamMap = new Map(teams.map(t => [t.id, t]))
@@ -107,18 +128,18 @@ function MatchCard({
   const homeFlag = teamFlag(homeTeam?.country_code)
   const awayFlag = teamFlag(awayTeam?.country_code)
 
-  const time = new Date(match.scheduled_at).toLocaleTimeString('pt-BR', {
-    hour: '2-digit', minute: '2-digit',
-  })
+  const scheduledAt = new Date(match.scheduled_at)
+  const time = scheduledAt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+  const isLive = !match.is_finished && scheduledAt <= new Date()
 
   const contextLabel = isGroupStage && match.group
     ? `Grupo ${match.group}`
     : (PHASE_LABEL[match.phase] ?? match.phase)
 
+  const venueCity = match.stadium ? VENUE_LOCATION[match.stadium] : null
+
   return (
-    <div className={`overflow-hidden rounded-xl border bg-white shadow-sm transition-shadow hover:shadow-md ${
-      match.is_finished ? 'border-zinc-200' : 'border-zinc-200'
-    }`}>
+    <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm transition-shadow hover:shadow-md">
 
       {/* Card header */}
       <div className="flex items-center justify-between border-b border-zinc-100 bg-zinc-50/80 px-4 py-2">
@@ -129,12 +150,18 @@ function MatchCard({
           <span className="rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-semibold text-zinc-500">
             Encerrado
           </span>
-        ) : (
-          <span className="text-xs font-medium text-zinc-400" suppressHydrationWarning>{time}</span>
-        )}
+        ) : isLive ? (
+          <span className="flex items-center gap-1.5 rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-bold text-red-600">
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75" />
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-red-600" />
+            </span>
+            AO VIVO
+          </span>
+        ) : null}
       </div>
 
-      {/* Teams + score */}
+      {/* Teams + center info */}
       <div className="flex items-center gap-3 px-4 py-4">
         {/* Home */}
         <div className="min-w-0 flex-1 text-right">
@@ -148,20 +175,35 @@ function MatchCard({
           </div>
         </div>
 
-        {/* Score / VS */}
-        <div className="w-20 shrink-0 text-center sm:w-24">
+        {/* Center: score or time + venue */}
+        <div className="w-24 shrink-0 text-center sm:w-28">
           {match.is_finished ? (
-            <div className="rounded-lg bg-zinc-900 px-2 py-1.5">
-              <span className="text-xl font-black tabular-nums text-white sm:text-2xl">
-                {match.home_score}
-                <span className="mx-1 text-zinc-500">–</span>
-                {match.away_score}
-              </span>
+            <div className="flex flex-col items-center gap-1">
+              <div className="rounded-lg bg-zinc-900 px-2 py-1.5">
+                <span className="text-xl font-black tabular-nums text-white sm:text-2xl">
+                  {match.home_score}
+                  <span className="mx-1 text-zinc-500">–</span>
+                  {match.away_score}
+                </span>
+              </div>
+              {match.stadium && (
+                <div className="flex flex-col items-center leading-tight">
+                  <span className="text-[10px] text-zinc-400">{match.stadium}</span>
+                  {venueCity && <span className="text-[10px] font-medium text-zinc-500">{venueCity}</span>}
+                </div>
+              )}
             </div>
           ) : (
-            <div className="flex flex-col items-center gap-0.5">
-              <span className="text-base font-bold text-zinc-300">vs</span>
-              <span className="text-xs text-zinc-400" suppressHydrationWarning>{time}</span>
+            <div className="flex flex-col items-center gap-1">
+              <span className="text-base font-bold tabular-nums text-zinc-700" suppressHydrationWarning>
+                {time}
+              </span>
+              {match.stadium && (
+                <div className="flex flex-col items-center leading-tight">
+                  <span className="text-[10px] text-zinc-400">{match.stadium}</span>
+                  {venueCity && <span className="text-[10px] font-medium text-zinc-500">{venueCity}</span>}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -178,13 +220,6 @@ function MatchCard({
           </div>
         </div>
       </div>
-
-      {/* Footer: stadium */}
-      {match.stadium && (
-        <div className="border-t border-zinc-100 px-4 py-2">
-          <span className="text-xs text-zinc-400">{match.stadium}</span>
-        </div>
-      )}
     </div>
   )
 }

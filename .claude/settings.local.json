@@ -3,7 +3,29 @@
     "allow": [
       "Bash(gh auth *)",
       "Bash(gh issue *)",
-      "Bash(python create_issues.py)"
+      "Bash(python create_issues.py)",
+      "WebFetch(domain:en.wikipedia.org)",
+      "WebFetch(domain:digitalhub.fifa.com)",
+      "WebFetch(domain:www.the-afc.com)",
+      "WebFetch(domain:sportsbettingdime.com)",
+      "WebFetch(domain:fixturedownload.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:soccerway.com)",
+      "WebFetch(domain:www.fifa.com)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:footystats.org)",
+      "WebFetch(domain:www.lance.com.br)",
+      "WebFetch(domain:resources.fifa.com)",
+      "WebFetch(domain:www.transfermarkt.com)",
+      "WebSearch",
+      "WebFetch(domain:worldcuplocaltime.com)",
+      "WebFetch(domain:www.thefamilytravelguy.com)",
+      "Bash(python \"C:/Users/nocla/.claude/projects/C--Users-nocla-OneDrive--rea-de-Trabalho-bolao-copa/extract_pdf.py\")",
+      "Bash(pip install *)",
+      "Bash(python *)",
+      "WebFetch(domain:www.football-data.org)",
+      "WebFetch(domain:docs.football-data.org)",
+      "Bash(npm run *)"
     ]
   }
 }
