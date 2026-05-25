@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { logout } from '@/app/actions/auth'
 import { MatchForm } from './match-form'
+import { SyncButton } from './sync-button'
 
 const PHASES = [
   { value: 'group_stage',  label: 'Fase de Grupos' },
@@ -94,6 +95,11 @@ export default async function AdminJogosPage({
               {p.label}
             </Link>
           ))}
+        </div>
+
+        {/* Sync */}
+        <div className="mb-4">
+          <SyncButton />
         </div>
 
         {/* Match table */}

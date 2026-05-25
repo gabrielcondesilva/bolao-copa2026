@@ -130,7 +130,6 @@ function MatchCard({
 
   const scheduledAt = new Date(match.scheduled_at)
   const time = scheduledAt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
-  const isLive = !match.is_finished && scheduledAt <= new Date()
 
   const contextLabel = isGroupStage && match.group
     ? `Grupo ${match.group}`
@@ -146,19 +145,11 @@ function MatchCard({
         <span className="text-xs font-bold uppercase tracking-wide text-zinc-500">
           {contextLabel}
         </span>
-        {match.is_finished ? (
+        {match.is_finished && (
           <span className="rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-semibold text-zinc-500">
             Encerrado
           </span>
-        ) : isLive ? (
-          <span className="flex items-center gap-1.5 rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-bold text-red-600">
-            <span className="relative flex h-1.5 w-1.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75" />
-              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-red-600" />
-            </span>
-            AO VIVO
-          </span>
-        ) : null}
+        )}
       </div>
 
       {/* Teams + center info */}
