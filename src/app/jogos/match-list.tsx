@@ -141,15 +141,10 @@ function MatchCard({
     <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm transition-shadow hover:shadow-md">
 
       {/* Card header */}
-      <div className="flex items-center justify-between border-b border-zinc-100 bg-zinc-50/80 px-4 py-2">
+      <div className="border-b border-zinc-100 bg-zinc-50/80 px-4 py-2">
         <span className="text-xs font-bold uppercase tracking-wide text-zinc-500">
           {contextLabel}
         </span>
-        {match.is_finished && (
-          <span className="rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-semibold text-zinc-500">
-            Encerrado
-          </span>
-        )}
       </div>
 
       {/* Teams + center info */}
@@ -166,36 +161,20 @@ function MatchCard({
           </div>
         </div>
 
-        {/* Center: score or time + venue */}
+        {/* Center: score or time */}
         <div className="w-24 shrink-0 text-center sm:w-28">
           {match.is_finished ? (
-            <div className="flex flex-col items-center gap-1">
-              <div className="rounded-lg bg-zinc-900 px-2 py-1.5">
-                <span className="text-xl font-black tabular-nums text-white sm:text-2xl">
-                  {match.home_score}
-                  <span className="mx-1 text-zinc-500">–</span>
-                  {match.away_score}
-                </span>
-              </div>
-              {match.stadium && (
-                <div className="flex flex-col items-center leading-tight">
-                  <span className="text-[10px] text-zinc-400">{match.stadium}</span>
-                  {venueCity && <span className="text-[10px] font-medium text-zinc-500">{venueCity}</span>}
-                </div>
-              )}
+            <div className="rounded-lg bg-zinc-900 px-2 py-1.5">
+              <span className="text-xl font-black tabular-nums text-white sm:text-2xl">
+                {match.home_score}
+                <span className="mx-1 text-zinc-500">–</span>
+                {match.away_score}
+              </span>
             </div>
           ) : (
-            <div className="flex flex-col items-center gap-1">
-              <span className="text-base font-bold tabular-nums text-zinc-700" suppressHydrationWarning>
-                {time}
-              </span>
-              {match.stadium && (
-                <div className="flex flex-col items-center leading-tight">
-                  <span className="text-[10px] text-zinc-400">{match.stadium}</span>
-                  {venueCity && <span className="text-[10px] font-medium text-zinc-500">{venueCity}</span>}
-                </div>
-              )}
-            </div>
+            <span className="text-base font-bold tabular-nums text-zinc-700" suppressHydrationWarning>
+              {time}
+            </span>
           )}
         </div>
 
@@ -211,6 +190,14 @@ function MatchCard({
           </div>
         </div>
       </div>
+
+      {/* Venue footer */}
+      {match.stadium && (
+        <div className="border-t border-zinc-100 px-4 py-1.5 text-center text-[11px] text-zinc-400">
+          {match.stadium}
+          {venueCity && <> · <span className="text-zinc-500">{venueCity}</span></>}
+        </div>
+      )}
     </div>
   )
 }

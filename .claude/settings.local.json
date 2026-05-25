@@ -25,7 +25,9 @@
       "Bash(python *)",
       "WebFetch(domain:www.football-data.org)",
       "WebFetch(domain:docs.football-data.org)",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
     ]
   }
 }
