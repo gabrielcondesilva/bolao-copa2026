@@ -37,6 +37,9 @@ export default async function AdminPage() {
           <Link href="/admin/classificados" className="text-sm text-zinc-500 hover:text-zinc-700">
             Classificados
           </Link>
+          <Link href="/admin/premios" className="text-sm text-zinc-500 hover:text-zinc-700">
+            Prêmios
+          </Link>
           <Link href="/jogos" className="text-sm font-medium text-blue-600 hover:text-blue-700">
             Ver bolão →
           </Link>

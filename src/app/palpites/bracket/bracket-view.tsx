@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import type { SimulatedBracket, SimulatedKnockoutMatch } from '@/lib/engines/bracket-simulator'
+import { teamFlag } from '@/lib/flags'
 
 interface RealMatch {
   homeName: string
@@ -13,9 +14,11 @@ interface RealMatch {
 interface Props {
   bracket: SimulatedBracket
   teamName: Record<string, string>
+  teamCode: Record<string, string>
   groupStageFinished: boolean
   finishedPhases: Set<string>
   knockoutByPhase: Record<string, RealMatch[]>
+  classificationPointsByPhase: Record<string, { points: number; hits: number }>
 }
 
 const PHASE_LABELS: Record<string, string> = {
@@ -44,47 +47,86 @@ const REAL_LABELS: Record<string, string> = {
   final:         'Seus palpites — Final',
 }
 
-export function BracketView({ bracket, teamName, groupStageFinished, finishedPhases, knockoutByPhase }: Props) {
+export function BracketView({ bracket, teamName, teamCode, groupStageFinished, finishedPhases, knockoutByPhase, classificationPointsByPhase }: Props) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const toggle = (phase: string) => setExpanded(p => ({ ...p, [phase]: !p[phase] }))
 
   const name = (id: string | null) => (id ? (teamName[id] ?? '?') : '—')
+  const flag = (id: string | null) => id ? teamFlag(teamCode[id]) : ''
+
+  const bestThirdsSet = new Set(bracket.bestThirds.slice(0, 8).map(t => t.teamId))
 
   return (
     <div className="space-y-4">
 
       {/* Group stage qualifiers — always visible */}
       <section>
-        <SectionHeader title="Fase de Grupos — Classificados" locked={groupStageFinished} />
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
-          {Object.entries(bracket.groups).map(([group, result]) => (
+        <SectionHeader title="Fase de Grupos — Classificados" locked={groupStageFinished} pts={classificationPointsByPhase['round_of_32']} />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {Object.entries(bracket.groups).sort(([a], [b]) => a.localeCompare(b)).map(([group, result]) => (
             <div key={group} className="overflow-hidden rounded-lg border border-zinc-200 bg-white">
-              <div className="border-b border-zinc-100 bg-zinc-50 px-3 py-1.5">
-                <span className="text-xs font-bold text-zinc-500">Grupo {group}</span>
+              <div className="border-b border-zinc-100 bg-zinc-50 px-3 py-2">
+                <span className="text-xs font-bold uppercase tracking-wide text-zinc-600">Grupo {group}</span>
               </div>
-              <div className="space-y-1 px-3 py-2">
-                {[result.first, result.second, result.third, result.fourth].map((teamId, i) => (
-                  <div key={i} className="flex items-center gap-1.5 text-xs">
-                    <span className="w-4 shrink-0 text-zinc-400">{i + 1}.</span>
-                    <span className={`truncate font-medium ${i < 2 ? 'text-zinc-900' : 'text-zinc-400'}`}>
-                      {name(teamId)}
-                    </span>
-                    {i < 2 && <span className="ml-auto shrink-0 text-green-600">✓</span>}
-                  </div>
-                ))}
-              </div>
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-zinc-100 text-zinc-400">
+                    <th className="py-2 pl-3 pr-1 text-left font-medium">Time</th>
+                    <th className="w-6 px-1 text-center font-medium">J</th>
+                    <th className="w-6 px-1 text-center font-medium">V</th>
+                    <th className="w-6 px-1 text-center font-medium">E</th>
+                    <th className="w-6 px-1 text-center font-medium">D</th>
+                    <th className="w-7 px-1 text-center font-medium">GP</th>
+                    <th className="w-7 px-1 text-center font-medium">GC</th>
+                    <th className="w-7 px-1 text-center font-medium">SG</th>
+                    <th className="w-8 py-2 pr-3 pl-1 text-center font-bold text-zinc-500">Pts</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {result.standings.map((s, i) => {
+                    const isBestThird = i === 2 && bestThirdsSet.has(s.team.id)
+                    const rowBg = i < 2 ? 'bg-green-50' : isBestThird ? 'bg-amber-50' : ''
+                    const f = flag(s.team.id)
+                    return (
+                      <tr key={s.team.id} className={`border-b border-zinc-100 last:border-0 ${rowBg}`}>
+                        <td className="py-2 pl-3 pr-1">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-zinc-400">{s.position}</span>
+                            {f && <span className={`fi fi-${f} shrink-0 rounded-sm`} style={{ fontSize: '0.875rem' }} aria-hidden="true" />}
+                            <span className="truncate font-medium text-zinc-900 max-w-[80px] sm:max-w-none">{s.team.name}</span>
+                          </div>
+                        </td>
+                        <td className="px-1 text-center text-zinc-600">{s.played}</td>
+                        <td className="px-1 text-center text-zinc-600">{s.won}</td>
+                        <td className="px-1 text-center text-zinc-600">{s.drawn}</td>
+                        <td className="px-1 text-center text-zinc-600">{s.lost}</td>
+                        <td className="px-1 text-center text-zinc-600">{s.goals_for}</td>
+                        <td className="px-1 text-center text-zinc-600">{s.goals_against}</td>
+                        <td className={`px-1 text-center font-medium ${s.goal_diff > 0 ? 'text-green-700' : s.goal_diff < 0 ? 'text-red-600' : 'text-zinc-500'}`}>
+                          {s.goal_diff > 0 ? `+${s.goal_diff}` : s.goal_diff}
+                        </td>
+                        <td className="py-2 pr-3 pl-1 text-center font-bold text-zinc-900">{s.points}</td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
             </div>
           ))}
         </div>
 
-        <div className="mt-3">
+        <div className="mt-4">
           <p className="mb-2 text-xs font-medium text-zinc-500">Melhores 3ºs colocados (8 de 12)</p>
           <div className="flex flex-wrap gap-2">
-            {bracket.bestThirds.slice(0, 8).map((t, i) => (
-              <span key={t.teamId} className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800">
-                {i + 1}. {name(t.teamId)}
-              </span>
-            ))}
+            {bracket.bestThirds.slice(0, 8).map((t, i) => {
+              const f = flag(t.teamId)
+              return (
+                <span key={t.teamId} className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800">
+                  {f && <span className={`fi fi-${f} shrink-0 rounded-sm`} style={{ fontSize: '0.75rem' }} aria-hidden="true" />}
+                  {i + 1}. {name(t.teamId)}
+                </span>
+              )
+            })}
           </div>
         </div>
       </section>
@@ -95,6 +137,7 @@ export function BracketView({ bracket, teamName, groupStageFinished, finishedPha
         isExpanded={!!expanded['round_of_32']}
         onToggle={() => toggle('round_of_32')}
         locked={finishedPhases.has('round_of_32')}
+        pts={classificationPointsByPhase['round_of_16']}
       >
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {bracket.round_of_32.map(m => (
@@ -111,6 +154,7 @@ export function BracketView({ bracket, teamName, groupStageFinished, finishedPha
         isExpanded={!!expanded['round_of_16']}
         onToggle={() => toggle('round_of_16')}
         locked={finishedPhases.has('round_of_16')}
+        pts={classificationPointsByPhase['quarterfinals']}
       >
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {bracket.round_of_16.map(m => (
@@ -127,6 +171,7 @@ export function BracketView({ bracket, teamName, groupStageFinished, finishedPha
         isExpanded={!!expanded['quarterfinals']}
         onToggle={() => toggle('quarterfinals')}
         locked={finishedPhases.has('quarterfinals')}
+        pts={classificationPointsByPhase['semifinals']}
       >
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {bracket.quarter_finals.map(m => (
@@ -143,6 +188,7 @@ export function BracketView({ bracket, teamName, groupStageFinished, finishedPha
         isExpanded={!!expanded['semifinals']}
         onToggle={() => toggle('semifinals')}
         locked={finishedPhases.has('semifinals')}
+        pts={classificationPointsByPhase['final']}
       >
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {bracket.semi_finals.map(m => (
@@ -225,16 +271,13 @@ function RealPalpitesSection({ phase, matches }: { phase: string; matches?: Real
 // ─── Collapsible simulation section ──────────────────────────────────────────
 
 function CollapsibleSection({
-  phase,
-  isExpanded,
-  onToggle,
-  locked,
-  children,
+  phase, isExpanded, onToggle, locked, pts, children,
 }: {
   phase: string
   isExpanded: boolean
   onToggle: () => void
   locked: boolean
+  pts?: { points: number; hits: number }
   children: React.ReactNode
 }) {
   if (!isExpanded) {
@@ -259,6 +302,7 @@ function CollapsibleSection({
               finalizado
             </span>
           )}
+          <PointsBadge pts={pts} />
         </div>
         <button
           onClick={onToggle}
@@ -274,7 +318,7 @@ function CollapsibleSection({
 
 // ─── Section header ───────────────────────────────────────────────────────────
 
-function SectionHeader({ title, locked }: { title: string; locked: boolean }) {
+function SectionHeader({ title, locked, pts }: { title: string; locked: boolean; pts?: { points: number; hits: number } }) {
   return (
     <div className="mb-3 flex items-center gap-2">
       <h3 className="text-sm font-bold text-zinc-800">{title}</h3>
@@ -283,7 +327,22 @@ function SectionHeader({ title, locked }: { title: string; locked: boolean }) {
           finalizado
         </span>
       )}
+      <PointsBadge pts={pts} />
     </div>
+  )
+}
+
+function PointsBadge({ pts }: { pts?: { points: number; hits: number } }) {
+  if (!pts) return null
+  if (pts.points === 0) return (
+    <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-400">
+      0 pts
+    </span>
+  )
+  return (
+    <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700">
+      +{pts.points} pts
+    </span>
   )
 }
 

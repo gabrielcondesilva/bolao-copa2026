@@ -181,7 +181,8 @@ export function computeRanking(data: {
       if (actualRunnerUp  && pf.runner_up_team_id === actualRunnerUp)  finalPoints += 20
       if (actualThird     && pf.third_team_id     === actualThird)     finalPoints += 10
       if (actualFourth    && pf.fourth_team_id    === actualFourth)    finalPoints +=  5
-      // top_scorer / best_player: +10 each — deferred until official awards are recorded
+      if (pf.artilheiro_correct)  finalPoints += 10
+      if (pf.best_player_correct) finalPoints += 10
     }
 
     return {

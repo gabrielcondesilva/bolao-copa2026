@@ -20,7 +20,7 @@ export default async function BracketPage() {
     { data: classifierOverrides },
   ] = await Promise.all([
     supabase.from('users').select('name, is_admin').eq('id', user.id).single(),
-    supabase.from('teams').select('id, name, group, fifa_ranking_reference'),
+    supabase.from('teams').select('id, name, group, fifa_ranking_reference, country_code'),
     supabase.from('matches').select('id, group, home_team_id, away_team_id, is_finished').eq('phase', 'group_stage'),
     supabase.from('matches').select('id, phase, home_team_id, away_team_id, is_finished').neq('phase', 'group_stage').order('scheduled_at'),
     supabase.from('palpites_jogos').select('match_id, home_score, away_score').eq('user_id', user.id),
@@ -99,6 +99,39 @@ export default async function BracketPage() {
     (teams ?? []).map(t => [t.id, t.name]),
   )
 
+  const teamCode: Record<string, string> = Object.fromEntries(
+    (teams ?? []).filter(t => t.country_code).map(t => [t.id, t.country_code!]),
+  )
+
+  // Classification points per phase (simulated vs actual)
+  const PHASE_PTS: Record<string, number> = {
+    round_of_32: 2, round_of_16: 4, quarterfinals: 6,
+    semifinals: 8, third_place: 10, final: 12,
+  }
+  const classificationPointsByPhase: Record<string, { points: number; hits: number }> = {}
+  if (bracket) {
+    const actualByPhase: Record<string, Set<string>> = {}
+    for (const m of knockoutMatches ?? []) {
+      if (!actualByPhase[m.phase]) actualByPhase[m.phase] = new Set()
+      if (m.home_team_id) actualByPhase[m.phase].add(m.home_team_id)
+      if (m.away_team_id) actualByPhase[m.phase].add(m.away_team_id)
+    }
+    const simByPhase: Record<string, (string | null)[]> = {
+      round_of_32:   bracket.round_of_32.flatMap(m => [m.homeTeamId, m.awayTeamId]),
+      round_of_16:   bracket.round_of_16.flatMap(m => [m.homeTeamId, m.awayTeamId]),
+      quarterfinals: bracket.quarter_finals.flatMap(m => [m.homeTeamId, m.awayTeamId]),
+      semifinals:    bracket.semi_finals.flatMap(m => [m.homeTeamId, m.awayTeamId]),
+      third_place:   [bracket.third_place.homeTeamId, bracket.third_place.awayTeamId],
+      final:         [bracket.final.homeTeamId, bracket.final.awayTeamId],
+    }
+    for (const [phase, simTeams] of Object.entries(simByPhase)) {
+      const actual = actualByPhase[phase]
+      if (!actual || actual.size === 0) continue
+      const hits = simTeams.filter((id): id is string => !!id && actual.has(id)).length
+      classificationPointsByPhase[phase] = { points: hits * (PHASE_PTS[phase] ?? 0), hits }
+    }
+  }
+
   // Real knockout match predictions grouped by phase (always-visible section)
   const KNOCKOUT_PHASES = ['round_of_32', 'round_of_16', 'quarterfinals', 'semifinals', 'third_place', 'final'] as const
   const knockoutByPhase: Record<string, { homeName: string; awayName: string; homeScore: number | null; awayScore: number | null }[]> = {}
@@ -172,9 +205,11 @@ export default async function BracketPage() {
           <BracketView
             bracket={bracket}
             teamName={teamName}
+            teamCode={teamCode}
             groupStageFinished={groupStageFinished}
             finishedPhases={finishedPhases}
             knockoutByPhase={knockoutByPhase}
+            classificationPointsByPhase={classificationPointsByPhase}
           />
         )}
       </main>
