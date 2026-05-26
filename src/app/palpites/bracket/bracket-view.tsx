@@ -379,7 +379,7 @@ export function BracketView({
         <div className="border-b border-green-100 bg-green-50 px-4 py-3">
           <h3 className="text-sm font-bold text-zinc-900">Seu Palpite Final</h3>
           <p className="mt-0.5 text-xs text-zinc-500">
-            {isLocked ? 'Prazo encerrado' : 'Derived automaticamente do bracket — salve ao terminar'}
+            {isLocked ? 'Prazo encerrado' : 'Derivado automaticamente do bracket — salve ao terminar'}
           </p>
         </div>
 

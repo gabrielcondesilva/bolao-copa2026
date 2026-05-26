@@ -66,6 +66,39 @@ export async function savePalpiteFinal(
   return { success: true }
 }
 
+export async function savePalpitesJogoBatch(
+  items: { matchId: string; homeScore: number; awayScore: number }[],
+): Promise<{ error: string } | { success: true }> {
+  if (items.length === 0) return { success: true }
+
+  for (const { homeScore, awayScore } of items) {
+    if (!Number.isInteger(homeScore) || !Number.isInteger(awayScore) || homeScore < 0 || awayScore < 0) {
+      return { error: 'Placar inválido.' }
+    }
+  }
+
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Não autenticado.' }
+
+  const { error } = await supabase
+    .from('palpites_jogos')
+    .upsert(
+      items.map(({ matchId, homeScore, awayScore }) => ({
+        user_id: user.id,
+        match_id: matchId,
+        home_score: homeScore,
+        away_score: awayScore,
+        updated_at: new Date().toISOString(),
+      })),
+      { onConflict: 'user_id,match_id' },
+    )
+
+  if (error) return { error: error.message }
+  revalidatePath('/palpites/bracket')
+  return { success: true }
+}
+
 export async function savePalpiteFinalDirect(data: {
   champion_team_id: string | null
   runner_up_team_id: string | null

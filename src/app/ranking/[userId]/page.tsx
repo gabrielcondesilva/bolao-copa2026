@@ -31,6 +31,7 @@ export default async function ParticipantDetailPage({
     { data: teams },
     { data: bracketOverrides },
     { data: classifierOverrides },
+    { data: phaseDeadlines },
   ] = await Promise.all([
     supabase.from('users').select('name, is_admin').eq('id', user.id).single(),
     admin.from('users').select('id, name').eq('id', userId).single(),
@@ -41,6 +42,7 @@ export default async function ParticipantDetailPage({
     admin.from('teams').select('*'),
     admin.from('bracket_overrides').select('*'),
     admin.from('classifier_overrides').select('*'),
+    admin.from('phase_deadlines').select('phase, deadline_at'),
   ])
 
   if (!targetUser) notFound()
@@ -62,6 +64,20 @@ export default async function ParticipantDetailPage({
   const palpiteMap = new Map((allPalpitesJogos ?? []).map(p => [p.match_id, p]))
   const palpiteFinal = (allPalpitesFinais ?? []).find(p => p.user_id === userId) ?? null
 
+  const phaseDeadlineMap = new Map((phaseDeadlines ?? []).map(d => [d.phase as string, d.deadline_at]))
+  const isOwnProfile = user.id === userId
+  const isAdmin = profile?.is_admin ?? false
+  const shouldHidePredictions = !isOwnProfile && !isAdmin
+
+  const now = new Date()
+  const deadlinePassed = (phase: string) => {
+    const dl = phaseDeadlineMap.get(phase)
+    return dl !== undefined && new Date(dl) <= now
+  }
+
+  const groupDeadlinePassed = deadlinePassed('group_stage')
+  const showFinalPalpite = !shouldHidePredictions || groupDeadlinePassed
+
   const finishedMatches = (allMatches ?? []).filter(
     m => m.is_finished && m.home_score !== null && m.away_score !== null,
   )
@@ -74,10 +90,13 @@ export default async function ParticipantDetailPage({
     const p = palpiteMap.get(m.id)
     const hasPalpite = p != null && p.home_score !== null && p.away_score !== null
     const isFinished = !!(m.is_finished && m.home_score !== null && m.away_score !== null)
+    const hidePrediction = shouldHidePredictions && !deadlinePassed(m.phase)
 
-    if (!isFinished && !hasPalpite) continue
+    // Skip unfinished matches if we can't show the prediction
+    if (!isFinished && (hidePrediction || !hasPalpite)) continue
 
-    const pts: 0 | 5 | 10 | null = (isFinished && hasPalpite)
+    const visiblePalpite = hasPalpite && !hidePrediction
+    const pts: 0 | 5 | 10 | null = (isFinished && visiblePalpite)
       ? scoreMatch(
           { home: p!.home_score!, away: p!.away_score! },
           { home: m.home_score!, away: m.away_score! },
@@ -91,8 +110,8 @@ export default async function ParticipantDetailPage({
       awayTeam: teamName.get(m.away_team_id) ?? '?',
       officialHome: isFinished ? m.home_score! : null,
       officialAway: isFinished ? m.away_score! : null,
-      predictedHome: p?.home_score ?? null,
-      predictedAway: p?.away_score ?? null,
+      predictedHome: visiblePalpite ? (p?.home_score ?? null) : null,
+      predictedAway: visiblePalpite ? (p?.away_score ?? null) : null,
       points: pts,
       isFinished,
     }
@@ -219,7 +238,7 @@ export default async function ParticipantDetailPage({
         </div>
 
         {/* Palpite Final */}
-        {palpiteFinal && (
+        {palpiteFinal && showFinalPalpite && (
           <section>
             <h2 className="mb-3 text-sm font-bold text-zinc-800">Palpite Final</h2>
             <div className="overflow-hidden rounded-lg border border-zinc-200 bg-white">
