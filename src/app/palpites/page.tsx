@@ -4,7 +4,6 @@ import Link from 'next/link'
 import { AppShell } from '@/components/app-shell'
 import { GroupPalpites } from './group-palpites'
 import { KnockoutPalpites } from './knockout-palpites'
-import { FinalPalpiteForm } from './final-palpite'
 import type { Database } from '@/lib/supabase/types'
 
 type Phase = Database['public']['Enums']['phase']
@@ -48,14 +47,10 @@ export default async function PalpitesPage({
   // ── Round 1: static data + phase availability ─────────────────────────────
   const [
     { data: profile },
-    { data: palpiteFinal },
-    { data: allTeams },
     { data: groupDeadline },
     { data: allPhasesData },
   ] = await Promise.all([
     supabase.from('users').select('name, is_admin').eq('id', user.id).single(),
-    supabase.from('palpites_finais').select('*').eq('user_id', user.id).maybeSingle(),
-    supabase.from('teams').select('id, name, group').order('group').order('name'),
     supabase.from('phase_deadlines').select('deadline_at').eq('phase', 'group_stage').maybeSingle(),
     supabase.from('matches').select('phase, home_team_id, away_team_id'),
   ])
@@ -116,13 +111,6 @@ export default async function PalpitesPage({
           <SubLink href="/palpites" active>Palpites de Jogo</SubLink>
           <SubLink href="/palpites/bracket">Bracket Simulado</SubLink>
         </div>
-
-        {/* Palpite Final */}
-        <FinalPalpiteForm
-          allTeams={allTeams ?? []}
-          existing={palpiteFinal ?? null}
-          deadlineAt={groupDeadline?.deadline_at ?? null}
-        />
 
         {/* Phase tabs — only show when there are knockout phases available */}
         {visiblePhases.length > 1 && (

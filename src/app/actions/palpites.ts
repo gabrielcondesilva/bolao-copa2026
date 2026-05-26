@@ -65,3 +65,27 @@ export async function savePalpiteFinal(
   if (error) return { error: error.message }
   return { success: true }
 }
+
+export async function savePalpiteFinalDirect(data: {
+  champion_team_id: string | null
+  runner_up_team_id: string | null
+  third_team_id: string | null
+  fourth_team_id: string | null
+  top_scorer: string | null
+  best_player: string | null
+}): Promise<{ error: string } | { success: true }> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Não autenticado.' }
+
+  const { error } = await supabase
+    .from('palpites_finais')
+    .upsert(
+      { user_id: user.id, ...data, updated_at: new Date().toISOString() },
+      { onConflict: 'user_id' },
+    )
+
+  if (error) return { error: error.message }
+  revalidatePath('/palpites/bracket')
+  return { success: true }
+}

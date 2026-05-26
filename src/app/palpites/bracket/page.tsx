@@ -14,18 +14,20 @@ export default async function BracketPage() {
     { data: profile },
     { data: teams },
     { data: groupMatches },
-    { data: knockoutMatches },
     { data: palpites },
     { data: bracketOverrides },
     { data: classifierOverrides },
+    { data: palpiteFinal },
+    { data: groupDeadline },
   ] = await Promise.all([
     supabase.from('users').select('name, is_admin').eq('id', user.id).single(),
     supabase.from('teams').select('id, name, group, fifa_ranking_reference, country_code'),
     supabase.from('matches').select('id, group, home_team_id, away_team_id, is_finished').eq('phase', 'group_stage'),
-    supabase.from('matches').select('id, phase, home_team_id, away_team_id, is_finished').neq('phase', 'group_stage').order('scheduled_at'),
     supabase.from('palpites_jogos').select('match_id, home_score, away_score').eq('user_id', user.id),
     supabase.from('bracket_overrides').select('*'),
     supabase.from('classifier_overrides').select('*'),
+    supabase.from('palpites_finais').select('champion_team_id, runner_up_team_id, third_team_id, fourth_team_id, top_scorer, best_player').eq('user_id', user.id).maybeSingle(),
+    supabase.from('phase_deadlines').select('deadline_at').eq('phase', 'group_stage').maybeSingle(),
   ])
 
   // Build bracket inputs
@@ -52,21 +54,8 @@ export default async function BracketPage() {
     fifa_ranking_reference: t.fifa_ranking_reference,
   }))
 
-  // Lock states
   const groupStageFinished =
     (groupMatches ?? []).length > 0 && (groupMatches ?? []).every(m => m.is_finished)
-
-  const finishedPhases = new Set<string>(
-    (knockoutMatches ?? [])
-      .reduce<string[]>((acc, m) => {
-        if (!acc.includes(m.phase)) acc.push(m.phase)
-        return acc
-      }, [])
-      .filter(phase => {
-        const phaseMatches = (knockoutMatches ?? []).filter(m => m.phase === phase)
-        return phaseMatches.length > 0 && phaseMatches.every(m => m.is_finished)
-      }),
-  )
 
   // Run simulator
   let bracket = null
@@ -102,50 +91,6 @@ export default async function BracketPage() {
   const teamCode: Record<string, string> = Object.fromEntries(
     (teams ?? []).filter(t => t.country_code).map(t => [t.id, t.country_code!]),
   )
-
-  // Classification points per phase (simulated vs actual)
-  const PHASE_PTS: Record<string, number> = {
-    round_of_32: 2, round_of_16: 4, quarterfinals: 6,
-    semifinals: 8, third_place: 10, final: 12,
-  }
-  const classificationPointsByPhase: Record<string, { points: number; hits: number }> = {}
-  if (bracket) {
-    const actualByPhase: Record<string, Set<string>> = {}
-    for (const m of knockoutMatches ?? []) {
-      if (!actualByPhase[m.phase]) actualByPhase[m.phase] = new Set()
-      if (m.home_team_id) actualByPhase[m.phase].add(m.home_team_id)
-      if (m.away_team_id) actualByPhase[m.phase].add(m.away_team_id)
-    }
-    const simByPhase: Record<string, (string | null)[]> = {
-      round_of_32:   bracket.round_of_32.flatMap(m => [m.homeTeamId, m.awayTeamId]),
-      round_of_16:   bracket.round_of_16.flatMap(m => [m.homeTeamId, m.awayTeamId]),
-      quarterfinals: bracket.quarter_finals.flatMap(m => [m.homeTeamId, m.awayTeamId]),
-      semifinals:    bracket.semi_finals.flatMap(m => [m.homeTeamId, m.awayTeamId]),
-      third_place:   [bracket.third_place.homeTeamId, bracket.third_place.awayTeamId],
-      final:         [bracket.final.homeTeamId, bracket.final.awayTeamId],
-    }
-    for (const [phase, simTeams] of Object.entries(simByPhase)) {
-      const actual = actualByPhase[phase]
-      if (!actual || actual.size === 0) continue
-      const hits = simTeams.filter((id): id is string => !!id && actual.has(id)).length
-      classificationPointsByPhase[phase] = { points: hits * (PHASE_PTS[phase] ?? 0), hits }
-    }
-  }
-
-  // Real knockout match predictions grouped by phase (always-visible section)
-  const KNOCKOUT_PHASES = ['round_of_32', 'round_of_16', 'quarterfinals', 'semifinals', 'third_place', 'final'] as const
-  const knockoutByPhase: Record<string, { homeName: string; awayName: string; homeScore: number | null; awayScore: number | null }[]> = {}
-  for (const phase of KNOCKOUT_PHASES) {
-    const phaseMatches = (knockoutMatches ?? []).filter(m => m.phase === phase && (m.home_team_id || m.away_team_id))
-    if (phaseMatches.length > 0) {
-      knockoutByPhase[phase] = phaseMatches.map(m => ({
-        homeName: teamName[m.home_team_id ?? ''] ?? '—',
-        awayName: teamName[m.away_team_id ?? ''] ?? '—',
-        homeScore: palpiteMap.get(m.id)?.home_score ?? null,
-        awayScore: palpiteMap.get(m.id)?.away_score ?? null,
-      }))
-    }
-  }
 
   return (
     <div className="min-h-full bg-zinc-50">
@@ -206,10 +151,10 @@ export default async function BracketPage() {
             bracket={bracket}
             teamName={teamName}
             teamCode={teamCode}
+            userId={user.id}
+            existingFinal={palpiteFinal ?? null}
+            deadlineAt={groupDeadline?.deadline_at ?? null}
             groupStageFinished={groupStageFinished}
-            finishedPhases={finishedPhases}
-            knockoutByPhase={knockoutByPhase}
-            classificationPointsByPhase={classificationPointsByPhase}
           />
         )}
       </main>
