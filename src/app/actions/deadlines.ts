@@ -23,8 +23,7 @@ export async function upsertPhaseDeadline(
   const deadlineAt = formData.get('deadline_at') as string
   if (!deadlineAt) return { error: 'Data obrigatória.' }
 
-  // Treat datetime-local value as UTC
-  const isoString = new Date(deadlineAt + 'Z').toISOString()
+  const isoString = new Date(deadlineAt + '-03:00').toISOString()
 
   const admin = createAdminClient()
   const { error } = await admin
@@ -50,7 +49,7 @@ export async function upsertGlobalException(
   const unlockedUntil = formData.get('unlocked_until') as string
   if (!phase || !unlockedUntil) return { error: 'Todos os campos são obrigatórios.' }
 
-  const isoString = new Date(unlockedUntil + 'Z').toISOString()
+  const isoString = new Date(unlockedUntil + '-03:00').toISOString()
 
   const admin = createAdminClient()
   const { data: participants } = await admin.from('users').select('id').eq('is_admin', false)

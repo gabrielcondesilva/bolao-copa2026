@@ -12,11 +12,13 @@ interface Props {
 
 export function DeadlineRow({ phase, label, currentDeadline, firstMatchAt }: Props) {
   const [state, action, pending] = useActionState(upsertPhaseDeadline, undefined)
-  const inputValue = currentDeadline ? new Date(currentDeadline).toISOString().slice(0, 16) : ''
+  const inputValue = currentDeadline
+    ? new Date(currentDeadline).toLocaleString('sv-SE', { timeZone: 'America/Sao_Paulo' }).slice(0, 16)
+    : ''
   const referenceLabel = firstMatchAt
     ? new Date(firstMatchAt).toLocaleString('pt-BR', {
         day: '2-digit', month: '2-digit', year: '2-digit',
-        hour: '2-digit', minute: '2-digit', timeZone: 'UTC',
+        hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo',
       })
     : '—'
 
