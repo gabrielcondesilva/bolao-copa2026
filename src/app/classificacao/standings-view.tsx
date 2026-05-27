@@ -45,6 +45,7 @@ export function StandingsView({ initialMatches, teams }: Props) {
   )
 
   const groupsWithTeams = GROUPS.filter(g => teams.some(t => t.group === g))
+  const flagMap = new Map(teams.map(t => [t.id, t.country_code]))
 
   if (groupsWithTeams.length === 0) {
     return (
@@ -54,33 +55,80 @@ export function StandingsView({ initialMatches, teams }: Props) {
     )
   }
 
+  // Compute all group standings up front
+  const allGroupData = groupsWithTeams.map(group => {
+    const groupTeams = teams
+      .filter(t => t.group === group)
+      .map(t => ({ id: t.id, name: t.name, fifa_ranking_reference: t.fifa_ranking_reference }))
+    const gMatches = finishedMatches
+      .filter(m => m.group === group)
+      .map(m => ({
+        id: m.id,
+        home_team_id: m.home_team_id!,
+        away_team_id: m.away_team_id!,
+        home_score: m.home_score!,
+        away_score: m.away_score!,
+      }))
+    return { group, standings: calculateStandings(groupTeams, gMatches) }
+  })
+
+  // Determine best 8 thirds — same criteria as bracket simulator
+  const thirds = allGroupData
+    .filter(({ standings }) => standings.length >= 3)
+    .map(({ group, standings }) => ({
+      teamId: standings[2].team.id,
+      group,
+      points: standings[2].points,
+      goalDiff: standings[2].goal_diff,
+      goalsFor: standings[2].goals_for,
+      fifaRanking: standings[2].team.fifa_ranking_reference,
+    }))
+
+  thirds.sort((a, b) =>
+    b.points - a.points ||
+    b.goalDiff - a.goalDiff ||
+    b.goalsFor - a.goalsFor ||
+    a.fifaRanking - b.fifaRanking
+  )
+
+  const bestThirdsSet = new Set(thirds.slice(0, 8).map(t => t.teamId))
+
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-      {groupsWithTeams.map(group => {
-        const groupTeams = teams
-          .filter(t => t.group === group)
-          .map(t => ({ id: t.id, name: t.name, fifa_ranking_reference: t.fifa_ranking_reference }))
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {allGroupData.map(({ group, standings }) => (
+          <GroupTable key={group} group={group} standings={standings} flagMap={flagMap} bestThirdsSet={bestThirdsSet} />
+        ))}
+      </div>
 
-        const groupMatches = finishedMatches
-          .filter(m => m.group === group)
-          .map(m => ({
-            id: m.id,
-            home_team_id: m.home_team_id!,
-            away_team_id: m.away_team_id!,
-            home_score: m.home_score!,
-            away_score: m.away_score!,
-          }))
-
-        const standings = calculateStandings(groupTeams, groupMatches)
-        const flagMap = new Map(teams.map(t => [t.id, t.country_code]))
-
-        return <GroupTable key={group} group={group} standings={standings} flagMap={flagMap} />
-      })}
+      {thirds.length > 0 && (
+        <div>
+          <p className="mb-2 text-xs font-medium text-zinc-500">Melhores 3ºs colocados (8 de 12)</p>
+          <div className="flex flex-wrap gap-2">
+            {thirds.slice(0, 8).map((t, i) => {
+              const code = flagMap.get(t.teamId)
+              const fl = code ? teamFlag(code) : null
+              const name = teams.find(tm => tm.id === t.teamId)?.name ?? '?'
+              return (
+                <span key={t.teamId} className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800">
+                  {fl && <span className={`fi fi-${fl} shrink-0 rounded-sm`} style={{ fontSize: '0.75rem' }} aria-hidden />}
+                  {i + 1}. {name}
+                </span>
+              )
+            })}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
 
-function GroupTable({ group, standings, flagMap }: { group: string; standings: GroupStanding[]; flagMap: Map<string, string> }) {
+function GroupTable({ group, standings, flagMap, bestThirdsSet }: {
+  group: string
+  standings: GroupStanding[]
+  flagMap: Map<string, string | null | undefined>
+  bestThirdsSet: Set<string>
+}) {
   return (
     <div className="overflow-hidden rounded-lg border border-zinc-200 bg-white">
       <div className="border-b border-zinc-100 bg-zinc-50 px-3 py-2">
@@ -107,7 +155,7 @@ function GroupTable({ group, standings, flagMap }: { group: string; standings: G
             <tr
               key={s.team.id}
               className={`border-b border-zinc-100 last:border-0 ${
-                i < 2 ? 'bg-green-50' : i === 2 ? 'bg-amber-50' : ''
+                i < 2 ? 'bg-green-50' : i === 2 && bestThirdsSet.has(s.team.id) ? 'bg-amber-50' : ''
               }`}
             >
               <td className="py-2 pl-3 pr-1">

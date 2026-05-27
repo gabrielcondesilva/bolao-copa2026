@@ -22,7 +22,7 @@ export default async function ClassificacaoPage() {
             <span className="inline-block w-3 h-3 rounded-sm bg-green-100 border border-green-200 mr-1 align-middle" />
             Classificado direto
             <span className="inline-block w-3 h-3 rounded-sm bg-amber-100 border border-amber-200 mx-1 ml-3 align-middle" />
-            Possível 3º melhor
+            3º melhor classificado
           </p>
         </div>
         <StandingsView initialMatches={matches ?? []} teams={teams ?? []} />
