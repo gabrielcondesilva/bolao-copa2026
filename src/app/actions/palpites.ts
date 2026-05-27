@@ -2,6 +2,24 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import type { Database } from '@/lib/supabase/types'
+
+type Phase = Database['public']['Enums']['phase']
+
+async function deadlinePassed(
+  supabase: SupabaseClient<Database>,
+  userId: string,
+  phase: Phase,
+): Promise<boolean> {
+  const now = new Date().toISOString()
+  const [{ data: deadline }, { data: exception }] = await Promise.all([
+    supabase.from('phase_deadlines').select('deadline_at').eq('phase', phase).maybeSingle(),
+    supabase.from('participant_exceptions').select('unlocked_until').eq('user_id', userId).eq('phase', phase).maybeSingle(),
+  ])
+  if (!deadline || deadline.deadline_at > now) return false
+  return !exception || exception.unlocked_until <= now
+}
 
 export async function savePalpiteJogo(
   matchId: string,
@@ -15,6 +33,10 @@ export async function savePalpiteJogo(
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Não autenticado.' }
+
+  const { data: match } = await supabase.from('matches').select('phase').eq('id', matchId).single()
+  if (!match) return { error: 'Jogo não encontrado.' }
+  if (await deadlinePassed(supabase, user.id, match.phase)) return { error: 'Prazo encerrado.' }
 
   const { error } = await supabase
     .from('palpites_jogos')
@@ -43,6 +65,7 @@ export async function savePalpiteFinal(
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Não autenticado.' }
+  if (await deadlinePassed(supabase, user.id, 'group_stage')) return { error: 'Prazo encerrado.' }
 
   const get = (key: string) => (formData.get(key) as string) || null
 
@@ -81,6 +104,13 @@ export async function savePalpitesJogoBatch(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Não autenticado.' }
 
+  const { data: matchRows } = await supabase
+    .from('matches').select('id, phase').in('id', items.map(i => i.matchId))
+  const phases = [...new Set((matchRows ?? []).map(m => m.phase))] as Phase[]
+  for (const phase of phases) {
+    if (await deadlinePassed(supabase, user.id, phase)) return { error: 'Prazo encerrado.' }
+  }
+
   const { error } = await supabase
     .from('palpites_jogos')
     .upsert(
@@ -110,6 +140,7 @@ export async function savePalpiteFinalDirect(data: {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Não autenticado.' }
+  if (await deadlinePassed(supabase, user.id, 'group_stage')) return { error: 'Prazo encerrado.' }
 
   const { error } = await supabase
     .from('palpites_finais')
