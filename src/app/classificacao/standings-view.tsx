@@ -97,11 +97,11 @@ export function StandingsView({ initialMatches, teams }: Props) {
     <div className="space-y-4">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {allGroupData.map(({ group, standings }) => (
-          <GroupTable key={group} group={group} standings={standings} flagMap={flagMap} bestThirdsSet={bestThirdsSet} />
+          <GroupTable key={group} group={group} standings={standings} flagMap={flagMap} bestThirdsSet={finishedMatches.length > 0 ? bestThirdsSet : new Set()} />
         ))}
       </div>
 
-      {thirds.length > 0 && (
+      {thirds.length > 0 && finishedMatches.length > 0 && (
         <div>
           <p className="mb-2 text-xs font-medium text-zinc-500">Melhores 3ºs colocados (8 de 12)</p>
           <div className="flex flex-wrap gap-2">
