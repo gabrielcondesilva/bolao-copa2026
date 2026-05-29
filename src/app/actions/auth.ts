@@ -8,11 +8,12 @@ type ActionResult = { error: string } | undefined
 
 export async function login(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
   const supabase = await createClient()
-  const { error } = await supabase.auth.signInWithPassword({
+  const { data, error } = await supabase.auth.signInWithPassword({
     email: formData.get('email') as string,
     password: formData.get('password') as string,
   })
   if (error) return { error: 'E-mail ou senha inválidos.' }
+  if (data.user?.app_metadata?.must_change_password) redirect('/alterar-senha')
   redirect('/')
 }
 
