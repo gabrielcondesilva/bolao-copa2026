@@ -1,12 +1,15 @@
 'use client'
 
 import { useActionState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
 import { login } from '@/app/actions/auth'
 
 export default function LoginPage() {
   const [state, action, pending] = useActionState(login, undefined)
+  const searchParams = useSearchParams()
+  const linkError = searchParams.get('error') === 'link_invalido'
 
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center bg-zinc-50 px-4">
@@ -31,9 +34,11 @@ export default function LoginPage() {
         {/* Form card */}
         <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
           <form action={action} className="flex flex-col gap-4">
-            {state?.error && (
+            {(state?.error || linkError) && (
               <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
-                {state.error}
+                {linkError
+                  ? 'Link inválido ou expirado. Solicite um novo link de recuperação.'
+                  : state?.error}
               </p>
             )}
 
