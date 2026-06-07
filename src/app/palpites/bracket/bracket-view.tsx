@@ -37,7 +37,37 @@ interface Props {
   groupStageFinished: boolean
 }
 
-const STORAGE_KEY = (uid: string) => `bracket_picks_v1_${uid}`
+const STORAGE_KEY = (uid: string) => `bracket_picks_v2_${uid}`
+
+// ── Bracket pairing tables ────────────────────────────────────────────────────
+// These mirror ROUND_OF_16_DEFS and QUARTER_FINAL_DEFS in bracket-simulator.ts.
+// R32 matches are indexed 0–15 in match-number order (M73=0 … M88=15).
+
+/** Which two R32 picks meet in each R16 match (indexed 0–7 = M89–M96). */
+const R16_R32_PAIRS: [number, number][] = [
+  [0,  2],  // M89: W73 vs W75
+  [1,  4],  // M90: W74 vs W77
+  [3,  5],  // M91: W76 vs W78
+  [6,  7],  // M92: W79 vs W80
+  [10, 11], // M93: W83 vs W84
+  [8,  9],  // M94: W81 vs W82
+  [13, 15], // M95: W86 vs W88
+  [12, 14], // M96: W85 vs W87
+]
+
+/** Which two R16 picks meet in each QF (indexed 0–3 = M97–M100). */
+const QF_R16_PAIRS: [number, number][] = [
+  [0, 1], // M97: W89 vs W90
+  [4, 5], // M98: W93 vs W94
+  [2, 3], // M99: W91 vs W92
+  [6, 7], // M100: W95 vs W96
+]
+
+/** For each R32 pick index (0–15), which R16 index it feeds. */
+const R32_TO_R16_IDX = [0, 1, 0, 2, 1, 2, 3, 3, 5, 5, 4, 4, 7, 6, 7, 6]
+
+/** For each R16 pick index (0–7), which QF index it feeds. */
+const R16_TO_QF_IDX = [0, 0, 2, 2, 1, 1, 3, 3]
 
 function emptyPicks(): BracketPicks {
   return {
@@ -81,14 +111,14 @@ export function BracketView({
 
   const r32 = bracket.round_of_32.map(m => ({ home: m.homeTeamId, away: m.awayTeamId }))
 
-  const r16 = Array.from({ length: 8 }, (_, i) => ({
-    home: picks.round_of_32[i * 2] ?? null,
-    away: picks.round_of_32[i * 2 + 1] ?? null,
+  const r16 = R16_R32_PAIRS.map(([hi, ai]) => ({
+    home: picks.round_of_32[hi] ?? null,
+    away: picks.round_of_32[ai] ?? null,
   }))
 
-  const qf = Array.from({ length: 4 }, (_, i) => ({
-    home: picks.round_of_16[i * 2] ?? null,
-    away: picks.round_of_16[i * 2 + 1] ?? null,
+  const qf = QF_R16_PAIRS.map(([hi, ai]) => ({
+    home: picks.round_of_16[hi] ?? null,
+    away: picks.round_of_16[ai] ?? null,
   }))
 
   const sf = Array.from({ length: 2 }, (_, i) => ({
@@ -138,17 +168,17 @@ export function BracketView({
 
       // Clear downstream picks that depend on this index
       if (p === 'round_of_32') {
-        const r16i = Math.floor(index / 2)
+        const r16i = R32_TO_R16_IDX[index]
         const nr16 = [...prev.round_of_16]; nr16[r16i] = null; next.round_of_16 = nr16
-        const qfi = Math.floor(index / 4)
+        const qfi = R16_TO_QF_IDX[r16i]
         const nqf = [...prev.quarterfinals]; nqf[qfi] = null; next.quarterfinals = nqf
-        const sfi = Math.floor(index / 8)
+        const sfi = Math.floor(qfi / 2)
         const nsf = [...prev.semifinals]; nsf[sfi] = null; next.semifinals = nsf
         next.final = null; next.third_place = null
       } else if (p === 'round_of_16') {
-        const qfi = Math.floor(index / 2)
+        const qfi = R16_TO_QF_IDX[index]
         const nqf = [...prev.quarterfinals]; nqf[qfi] = null; next.quarterfinals = nqf
-        const sfi = Math.floor(index / 4)
+        const sfi = Math.floor(qfi / 2)
         const nsf = [...prev.semifinals]; nsf[sfi] = null; next.semifinals = nsf
         next.final = null; next.third_place = null
       } else if (p === 'quarterfinals') {
