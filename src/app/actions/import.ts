@@ -233,6 +233,8 @@ export async function importMatches(
   revalidatePath('/admin/jogos')
   revalidatePath('/classificacao')
   revalidatePath('/jogos')
+  revalidatePath('/ranking')
+  revalidatePath('/ranking/[userId]', 'page')
 
   return { imported, updated, skipped: 0, teamsUpserted, errors, phase, timestamp: new Date().toISOString() }
 }

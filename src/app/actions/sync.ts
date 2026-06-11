@@ -158,6 +158,8 @@ export async function syncResults(
   revalidatePath('/admin/jogos')
   revalidatePath('/jogos')
   revalidatePath('/classificacao')
+  revalidatePath('/ranking')
+  revalidatePath('/ranking/[userId]', 'page')
 
   return { updated, notFinished, errors, timestamp: new Date().toISOString() }
 }
