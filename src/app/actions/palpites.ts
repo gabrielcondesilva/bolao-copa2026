@@ -146,7 +146,17 @@ export async function savePalpiteFinalDirect(data: {
   const { error } = await supabase
     .from('palpites_finais')
     .upsert(
-      { user_id: user.id, ...data, updated_at: new Date().toISOString() },
+      {
+        user_id: user.id,
+        champion_team_id: data.champion_team_id,
+        runner_up_team_id: data.runner_up_team_id,
+        third_team_id: data.third_team_id,
+        fourth_team_id: data.fourth_team_id,
+        top_scorer: data.top_scorer,
+        best_player: data.best_player,
+        bracket_picks: data.bracket_picks ?? null,
+        updated_at: new Date().toISOString(),
+      },
       { onConflict: 'user_id' },
     )
 
