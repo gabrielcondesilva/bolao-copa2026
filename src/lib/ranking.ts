@@ -153,21 +153,42 @@ export function computeRanking(data: {
           overrides: commonOverrides,
         })
 
-        const simQualifiers: Record<ClassificationPhase, string[]> = {
-          round_of_32: bracket.round_of_32.flatMap(m => [m.homeTeamId, m.awayTeamId]).filter((id): id is string => id !== null),
-          round_of_16: bracket.round_of_16.flatMap(m => [m.homeTeamId, m.awayTeamId]).filter((id): id is string => id !== null),
-          quarter_finals: bracket.quarter_finals.flatMap(m => [m.homeTeamId, m.awayTeamId]).filter((id): id is string => id !== null),
-          semi_finals: bracket.semi_finals.flatMap(m => [m.homeTeamId, m.awayTeamId]).filter((id): id is string => id !== null),
-          third_place: [bracket.third_place.homeTeamId, bracket.third_place.awayTeamId].filter((id): id is string => id !== null),
-          final: [bracket.final.homeTeamId, bracket.final.awayTeamId].filter((id): id is string => id !== null),
-        }
+        // R32: derived from group stage simulation
+        const simR32 = bracket.round_of_32
+          .flatMap(m => [m.homeTeamId, m.awayTeamId])
+          .filter((id): id is string => id !== null)
+        if (actualQualifiers.round_of_32.length > 0 && simR32.length > 0)
+          classificationPoints += scoreClassifications(simR32, actualQualifiers.round_of_32, 'round_of_32')
 
-        for (const cp of KNOCKOUT_PHASES) {
-          const actual = actualQualifiers[cp]
-          const sim = simQualifiers[cp]
-          if (actual.length > 0 && sim.length > 0) {
-            classificationPoints += scoreClassifications(sim, actual, cp)
-          }
+        // R16+: derived from bracket_picks saved by the participant
+        const bp = pfMap.get(participant.id)?.bracket_picks
+        if (bp && typeof bp === 'object' && !Array.isArray(bp)) {
+          const picks = bp as Record<string, unknown>
+          const r32p = Array.isArray(picks.round_of_32) ? picks.round_of_32 as (string | null)[] : []
+          const r16p = Array.isArray(picks.round_of_16) ? picks.round_of_16 as (string | null)[] : []
+          const qfp  = Array.isArray(picks.quarterfinals) ? picks.quarterfinals as (string | null)[] : []
+          const sfp  = Array.isArray(picks.semifinals) ? picks.semifinals as (string | null)[] : []
+
+          const simR16   = r32p.filter((id): id is string => typeof id === 'string')
+          const simQF    = r16p.filter((id): id is string => typeof id === 'string')
+          const simSF    = qfp.filter((id): id is string => typeof id === 'string')
+          const simFinal = sfp.filter((id): id is string => typeof id === 'string')
+
+          // 3º lugar = perdedores das semis
+          const sf1Loser = sfp[0] ? (qfp[0] === sfp[0] ? qfp[1] : qfp[0]) : null
+          const sf2Loser = sfp[1] ? (qfp[2] === sfp[1] ? qfp[3] : qfp[2]) : null
+          const simThird = [sf1Loser, sf2Loser].filter((id): id is string => typeof id === 'string')
+
+          if (actualQualifiers.round_of_16.length > 0 && simR16.length > 0)
+            classificationPoints += scoreClassifications(simR16, actualQualifiers.round_of_16, 'round_of_16')
+          if (actualQualifiers.quarter_finals.length > 0 && simQF.length > 0)
+            classificationPoints += scoreClassifications(simQF, actualQualifiers.quarter_finals, 'quarter_finals')
+          if (actualQualifiers.semi_finals.length > 0 && simSF.length > 0)
+            classificationPoints += scoreClassifications(simSF, actualQualifiers.semi_finals, 'semi_finals')
+          if (actualQualifiers.final.length > 0 && simFinal.length > 0)
+            classificationPoints += scoreClassifications(simFinal, actualQualifiers.final, 'final')
+          if (actualQualifiers.third_place.length > 0 && simThird.length > 0)
+            classificationPoints += scoreClassifications(simThird, actualQualifiers.third_place, 'third_place')
         }
       } catch {
         // Bracket simulation failed — 0 classification points for this participant
