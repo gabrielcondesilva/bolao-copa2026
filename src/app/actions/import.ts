@@ -5,6 +5,9 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { VENUES_BY_EXTERNAL_ID } from '@/lib/data/venues-2026'
+import type { Database } from '@/lib/supabase/types'
+
+type MatchUpdate = Database['public']['Tables']['matches']['Update']
 
 type Phase = 'group_stage' | 'round_of_32' | 'round_of_16' | 'quarterfinals' | 'semifinals' | 'third_place' | 'final'
 
@@ -180,36 +183,48 @@ export async function importMatches(
     const grp = m.group?.replace('GROUP_', '')
     const groupChar = grp && VALID_GROUPS.has(grp) ? grp : null
 
-    const isFinished = m.status === 'FINISHED'
+    const isFinished = m.status === 'FINISHED' || m.status === 'AWARDED'
     const wentToExtra = m.score.duration === 'EXTRA_TIME' || m.score.duration === 'PENALTY_SHOOTOUT'
 
-    const metaPayload = {
-      phase,
-      group: groupChar,
-      home_team_id: homeId,
-      away_team_id: awayId,
-      scheduled_at: m.utcDate,
-      stadium: m.venue || VENUES_BY_EXTERNAL_ID[m.id] || null,
-      external_id: m.id,
-    }
-
-    const fullPayload = {
-      ...metaPayload,
-      home_score: m.score.fullTime.home,
-      away_score: m.score.fullTime.away,
-      is_finished: true as const,
-      went_to_extra_time: wentToExtra,
-    }
-
-    const payload = isFinished ? fullPayload : metaPayload
-
     if (existing) {
-      const { error: e } = await admin.from('matches').update(payload).eq('id', existing.id)
+      // Never overwrite team IDs or group with null — only update fields we have good values for
+      const updatePayload: MatchUpdate = {
+        scheduled_at: m.utcDate,
+        external_id: m.id,
+      }
+      if (homeId) updatePayload.home_team_id = homeId
+      if (awayId) updatePayload.away_team_id = awayId
+      if (groupChar) updatePayload.group = groupChar
+      if (m.venue) updatePayload.stadium = m.venue
+      else if (VENUES_BY_EXTERNAL_ID[m.id]) updatePayload.stadium = VENUES_BY_EXTERNAL_ID[m.id]
+      if (isFinished && m.score.fullTime.home !== null && m.score.fullTime.away !== null) {
+        updatePayload.home_score = m.score.fullTime.home
+        updatePayload.away_score = m.score.fullTime.away
+        updatePayload.is_finished = true
+        updatePayload.went_to_extra_time = wentToExtra
+      }
+
+      const { error: e } = await admin.from('matches').update(updatePayload).eq('id', existing.id)
       if (e) errors.push(`Jogo ${m.id}: ${e.message}`)
       else if (isFinished && !existing.is_finished) imported++
       else updated++
     } else {
-      const { error: e } = await admin.from('matches').insert(payload)
+      const insertPayload = {
+        phase,
+        group: groupChar,
+        home_team_id: homeId,
+        away_team_id: awayId,
+        scheduled_at: m.utcDate,
+        stadium: m.venue || VENUES_BY_EXTERNAL_ID[m.id] || null,
+        external_id: m.id,
+        ...(isFinished && m.score.fullTime.home !== null && m.score.fullTime.away !== null ? {
+          home_score: m.score.fullTime.home,
+          away_score: m.score.fullTime.away,
+          is_finished: true as const,
+          went_to_extra_time: wentToExtra,
+        } : {}),
+      }
+      const { error: e } = await admin.from('matches').insert(insertPayload)
       if (e) errors.push(`Jogo ${m.id}: ${e.message}`)
       else imported++
     }

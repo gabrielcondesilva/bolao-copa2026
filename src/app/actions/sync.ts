@@ -20,6 +20,8 @@ const PHASE_TO_STAGE: Record<Phase, string> = {
 type ApiMatch = {
   id: number
   status: string
+  homeTeam: { id: number; tla: string } | null
+  awayTeam: { id: number; tla: string } | null
   score: {
     duration: string
     fullTime: { home: number | null; away: number | null }
@@ -33,8 +35,8 @@ export type SyncResult = {
   timestamp: string
 }
 
-// Finds phases that have past unfinished matches in the DB, fetches results
-// from the API for each, and marks finished ones as is_finished=true with scores.
+// Finds phases with past unfinished matches and fetches results from the API.
+// Matches by external_id (linked) or by team TLA pair (unlinked — sets external_id as side-effect).
 export async function syncResults(
   _prev: SyncResult | { error: string } | undefined,
 ): Promise<SyncResult | { error: string }> {
@@ -49,10 +51,10 @@ export async function syncResults(
 
   const admin = createAdminClient()
 
-  // Find unfinished matches that are already past their scheduled time
+  // All unfinished matches past their scheduled time
   const { data: pending } = await admin
     .from('matches')
-    .select('phase, external_id')
+    .select('id, phase, external_id, home_team_id, away_team_id')
     .eq('is_finished', false)
     .lt('scheduled_at', new Date().toISOString())
 
@@ -60,7 +62,33 @@ export async function syncResults(
     return { updated: 0, notFinished: 0, errors: [], timestamp: new Date().toISOString() }
   }
 
-  const pendingIds = new Set(pending.map(m => m.external_id).filter(Boolean) as number[])
+  // Two lookup maps: by API external_id, and by "phase:homeUuid:awayUuid" for unlinked matches
+  const byExtId = new Map<number, typeof pending[0]>()
+  const byTeams = new Map<string, typeof pending[0]>()
+
+  for (const m of pending) {
+    if (m.external_id) {
+      byExtId.set(m.external_id, m)
+    } else if (m.home_team_id && m.away_team_id) {
+      byTeams.set(`${m.phase}:${m.home_team_id}:${m.away_team_id}`, m)
+    }
+  }
+
+  // Build TLA → team UUID map for unlinked matches (so we can match by API tla)
+  const unlinkedTeamIds = [...new Set(
+    [...byTeams.values()].flatMap(m => [m.home_team_id, m.away_team_id]).filter(Boolean),
+  )] as string[]
+
+  const { data: teamRows } = unlinkedTeamIds.length > 0
+    ? await admin.from('teams').select('id, country_code').in('id', unlinkedTeamIds)
+    : { data: [] as { id: string; country_code: string | null }[] }
+
+  const tlaToUuid = new Map(
+    (teamRows ?? [])
+      .filter(t => t.country_code)
+      .map(t => [t.country_code!.toUpperCase(), t.id]),
+  )
+
   const phases = [...new Set(pending.map(m => m.phase as Phase))]
 
   let updated = 0, notFinished = 0
@@ -85,7 +113,18 @@ export async function syncResults(
     }
 
     for (const m of apiMatches) {
-      if (!pendingIds.has(m.id)) continue
+      // Find matching DB row: first by external_id, then by team TLA pair
+      let dbMatch = byExtId.get(m.id)
+
+      if (!dbMatch && m.homeTeam?.tla && m.awayTeam?.tla) {
+        const homeUuid = tlaToUuid.get(m.homeTeam.tla.toUpperCase())
+        const awayUuid = tlaToUuid.get(m.awayTeam.tla.toUpperCase())
+        if (homeUuid && awayUuid) {
+          dbMatch = byTeams.get(`${phase}:${homeUuid}:${awayUuid}`)
+        }
+      }
+
+      if (!dbMatch) continue  // this API match has no pending DB counterpart
 
       if (m.status !== 'FINISHED' && m.status !== 'AWARDED') {
         notFinished++
@@ -107,8 +146,9 @@ export async function syncResults(
           away_score: m.score.fullTime.away,
           is_finished: true,
           went_to_extra_time: wentToExtraTime,
+          external_id: m.id,  // link the match for future syncs
         })
-        .eq('external_id', m.id)
+        .eq('id', dbMatch.id)
 
       if (error) errors.push(`Jogo ${m.id}: ${error.message}`)
       else updated++
@@ -117,6 +157,7 @@ export async function syncResults(
 
   revalidatePath('/admin/jogos')
   revalidatePath('/jogos')
+  revalidatePath('/classificacao')
 
   return { updated, notFinished, errors, timestamp: new Date().toISOString() }
 }
