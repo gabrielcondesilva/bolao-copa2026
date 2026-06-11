@@ -5,6 +5,8 @@ import { AppShell } from '@/components/app-shell'
 import { computeRanking } from '@/lib/ranking'
 import { RankingTable } from './ranking-table'
 
+export const dynamic = 'force-dynamic'
+
 export default async function RankingPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

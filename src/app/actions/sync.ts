@@ -59,6 +59,8 @@ export async function syncResults(
     .lt('scheduled_at', new Date().toISOString())
 
   if (!pending || pending.length === 0) {
+    revalidatePath('/ranking')
+    revalidatePath('/ranking/[userId]', 'page')
     return { updated: 0, notFinished: 0, errors: [], timestamp: new Date().toISOString() }
   }
 

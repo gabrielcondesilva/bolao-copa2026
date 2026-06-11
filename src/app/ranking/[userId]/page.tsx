@@ -8,6 +8,8 @@ import { scoreMatch } from '@/lib/engines/scoring'
 import { PalpitesBreakdown } from './palpites-breakdown'
 import type { MatchRow } from './palpites-breakdown'
 
+export const dynamic = 'force-dynamic'
+
 export default async function ParticipantDetailPage({
   params,
 }: {
