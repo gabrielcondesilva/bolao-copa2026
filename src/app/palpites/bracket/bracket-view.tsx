@@ -91,7 +91,8 @@ export function BracketView({
   const [mounted, setMounted] = useState(false)
   const [topScorer, setTopScorer] = useState(existingFinal?.top_scorer ?? '')
   const [bestPlayer, setBestPlayer] = useState(existingFinal?.best_player ?? '')
-  const [saveMsg, setSaveMsg] = useState<{ ok: boolean; text: string } | null>(null)
+  const [isSaved, setIsSaved] = useState(initialPicks !== null)
+  const [saveError, setSaveError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
   const isLocked = !!deadlineAt && new Date(deadlineAt) <= new Date()
@@ -203,7 +204,7 @@ export function BracketView({
 
   const handleSave = () => {
     startTransition(async () => {
-      setSaveMsg(null)
+      setSaveError(null)
       const res = await savePalpiteFinalDirect({
         champion_team_id: champion,
         runner_up_team_id: runnerUp,
@@ -214,10 +215,10 @@ export function BracketView({
         bracket_picks: picks as unknown as Json,
       })
       if ('error' in res) {
-        setSaveMsg({ ok: false, text: res.error })
+        setSaveError(res.error)
       } else {
-        setSaveMsg({ ok: true, text: '✓ Palpite final salvo!' })
-        setTimeout(() => setSaveMsg(null), 4000)
+        setIsSaved(true)
+        setSaveError(null)
       }
     })
   }
@@ -413,11 +414,34 @@ export function BracketView({
       {/* ── Palpite Final — resultado derivado + premiações ── */}
 
       <section className="overflow-hidden rounded-xl border-2 border-green-200 bg-white">
-        <div className="border-b border-green-100 bg-green-50 px-4 py-3">
-          <h3 className="text-sm font-bold text-zinc-900">Seu Palpite Final</h3>
-          <p className="mt-0.5 text-xs text-zinc-500">
-            {isLocked ? 'Prazo encerrado' : 'Derivado automaticamente do bracket — salve ao terminar'}
-          </p>
+        <div className="flex items-center justify-between border-b border-green-100 bg-green-50 px-4 py-3">
+          <div>
+            <h3 className="text-sm font-bold text-zinc-900">Seu Palpite Final</h3>
+            <p className="mt-0.5 text-xs text-zinc-500">
+              Derivado automaticamente do bracket
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            {isLocked ? (
+              <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-medium text-red-700">
+                Prazo encerrado
+              </span>
+            ) : isSaved ? (
+              <>
+                <span className="text-xs font-medium text-green-600">✓ Palpite salvo</span>
+                <button
+                  onClick={() => setIsSaved(false)}
+                  className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-200"
+                >
+                  Editar
+                </button>
+              </>
+            ) : (
+              <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700">
+                Aberto
+              </span>
+            )}
+          </div>
         </div>
 
         <div className="space-y-4 p-4">
@@ -436,7 +460,7 @@ export function BracketView({
           </div>
 
           {/* Save */}
-          {!isLocked && (
+          {!isLocked && !isSaved && (
             <div className="flex flex-wrap items-center gap-3 pt-1">
               <button
                 onClick={handleSave}
@@ -448,10 +472,8 @@ export function BracketView({
               {!champion && (
                 <span className="text-xs text-zinc-400">Complete o bracket para salvar</span>
               )}
-              {saveMsg && (
-                <span className={`text-sm font-medium ${saveMsg.ok ? 'text-green-600' : 'text-red-600'}`}>
-                  {saveMsg.text}
-                </span>
+              {saveError && (
+                <span className="text-sm font-medium text-red-600">{saveError}</span>
               )}
             </div>
           )}
