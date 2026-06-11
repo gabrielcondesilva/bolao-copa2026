@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createAdminClient, fetchAllPalpitesJogos } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { AppShell } from '@/components/app-shell'
 import { computeRanking } from '@/lib/ranking'
@@ -22,25 +22,25 @@ export default async function RankingPage() {
   const [
     { data: participants },
     { data: allMatches },
-    { data: allPalpitesJogos },
     { data: allPalpitesFinais },
     { data: teams },
     { data: bracketOverrides },
     { data: classifierOverrides },
+    allPalpitesJogos,
   ] = await Promise.all([
     admin.from('users').select('id, name').order('name'),
     admin.from('matches').select('*'),
-    admin.from('palpites_jogos').select('*'),
     admin.from('palpites_finais').select('*'),
     admin.from('teams').select('*'),
     admin.from('bracket_overrides').select('*'),
     admin.from('classifier_overrides').select('*'),
+    fetchAllPalpitesJogos(admin),
   ])
 
   const entries = computeRanking({
     participants: participants ?? [],
     allMatches: allMatches ?? [],
-    allPalpitesJogos: allPalpitesJogos ?? [],
+    allPalpitesJogos,
     allPalpitesFinais: allPalpitesFinais ?? [],
     teams: teams ?? [],
     bracketOverrides: bracketOverrides ?? [],

@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createAdminClient, fetchAllPalpitesJogos } from '@/lib/supabase/admin'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { logout } from '@/app/actions/auth'
@@ -52,7 +52,7 @@ export default async function ParticipantDetailPage({
   const ranking = computeRanking({
     participants: participants ?? [],
     allMatches: allMatches ?? [],
-    allPalpitesJogos: await admin.from('palpites_jogos').select('*').then(r => r.data ?? []),
+    allPalpitesJogos: await fetchAllPalpitesJogos(admin),
     allPalpitesFinais: allPalpitesFinais ?? [],
     teams: teams ?? [],
     bracketOverrides: bracketOverrides ?? [],
