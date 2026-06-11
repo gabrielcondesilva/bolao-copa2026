@@ -154,14 +154,29 @@ export async function importMatches(
 
   // Upsert matches — update metadata always; update scores only when API says FINISHED
   for (const m of apiMatches) {
-    const { data: existing } = await admin
+    const homeId = m.homeTeam?.id ? (teamIdMap.get(m.homeTeam.id) ?? null) : null
+    const awayId = m.awayTeam?.id ? (teamIdMap.get(m.awayTeam.id) ?? null) : null
+
+    // Primary lookup by external_id; fallback to teams+phase for manually-created rows
+    const { data: existingByExtId } = await admin
       .from('matches')
       .select('id, is_finished')
       .eq('external_id', m.id)
       .maybeSingle()
 
-    const homeId = m.homeTeam?.id ? (teamIdMap.get(m.homeTeam.id) ?? null) : null
-    const awayId = m.awayTeam?.id ? (teamIdMap.get(m.awayTeam.id) ?? null) : null
+    let existing = existingByExtId
+
+    if (!existing && homeId && awayId) {
+      const { data: existingByTeams } = await admin
+        .from('matches')
+        .select('id, is_finished')
+        .eq('phase', phase)
+        .eq('home_team_id', homeId)
+        .eq('away_team_id', awayId)
+        .is('external_id', null)
+        .maybeSingle()
+      existing = existingByTeams
+    }
     const grp = m.group?.replace('GROUP_', '')
     const groupChar = grp && VALID_GROUPS.has(grp) ? grp : null
 
@@ -201,6 +216,8 @@ export async function importMatches(
   }
 
   revalidatePath('/admin/jogos')
+  revalidatePath('/classificacao')
+  revalidatePath('/jogos')
 
   return { imported, updated, skipped: 0, teamsUpserted, errors, phase, timestamp: new Date().toISOString() }
 }
