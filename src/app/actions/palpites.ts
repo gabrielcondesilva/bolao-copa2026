@@ -141,7 +141,7 @@ export async function savePalpiteFinalDirect(data: {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Não autenticado.' }
-  if (await deadlinePassed(supabase, user.id, 'group_stage')) return { error: 'Prazo encerrado.' }
+  if (await deadlinePassed(supabase, user.id, 'bracket_simulado')) return { error: 'Prazo do bracket encerrado.' }
 
   const { error } = await supabase
     .from('palpites_finais')

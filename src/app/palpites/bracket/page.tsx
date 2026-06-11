@@ -27,7 +27,7 @@ export default async function BracketPage() {
     supabase.from('bracket_overrides').select('*'),
     supabase.from('classifier_overrides').select('*'),
     supabase.from('palpites_finais').select('champion_team_id, runner_up_team_id, third_team_id, fourth_team_id, top_scorer, best_player, bracket_picks').eq('user_id', user.id).maybeSingle(),
-    supabase.from('phase_deadlines').select('deadline_at').eq('phase', 'group_stage').maybeSingle(),
+    supabase.from('phase_deadlines').select('deadline_at').eq('phase', 'bracket_simulado').maybeSingle(),
   ])
 
   // Build bracket inputs
@@ -154,7 +154,7 @@ export default async function BracketPage() {
             userId={user.id}
             existingFinal={palpiteFinal ?? null}
             initialPicks={palpiteFinal?.bracket_picks ?? null}
-            deadlineAt={groupDeadline?.deadline_at ?? null}
+            deadlineAt={groupDeadline?.deadline_at ?? null}  // bracket_simulado deadline
             groupStageFinished={groupStageFinished}
           />
         )}

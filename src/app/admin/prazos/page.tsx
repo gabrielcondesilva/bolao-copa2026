@@ -6,13 +6,14 @@ import { logout } from '@/app/actions/auth'
 import { DeadlineRow } from './deadline-row'
 
 const PHASES = [
-  { value: 'group_stage',   label: 'Fase de Grupos' },
-  { value: 'round_of_32',  label: '16-avos' },
-  { value: 'round_of_16',  label: 'Oitavas' },
-  { value: 'quarterfinals', label: 'Quartas' },
-  { value: 'semifinals',   label: 'Semifinais' },
-  { value: 'third_place',  label: 'Disputa de 3º' },
-  { value: 'final',        label: 'Final' },
+  { value: 'group_stage',       label: 'Fase de Grupos' },
+  { value: 'bracket_simulado',  label: 'Bracket Simulado' },
+  { value: 'round_of_32',       label: '16-avos' },
+  { value: 'round_of_16',       label: 'Oitavas' },
+  { value: 'quarterfinals',     label: 'Quartas' },
+  { value: 'semifinals',        label: 'Semifinais' },
+  { value: 'third_place',       label: 'Disputa de 3º' },
+  { value: 'final',             label: 'Final' },
 ] as const
 
 
