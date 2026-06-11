@@ -72,18 +72,11 @@ function ImportResultCard({ result }: { result: ImportResult }) {
         <span className="text-xs text-zinc-400">{ts}</span>
       </div>
 
-      <div className="grid grid-cols-4 divide-x divide-zinc-100 text-center">
-        <Stat label="Importados" value={result.imported} color="text-green-700" />
+      <div className="grid grid-cols-3 divide-x divide-zinc-100 text-center">
+        <Stat label="Resultados novos" value={result.imported} color="text-green-700" />
         <Stat label="Atualizados" value={result.updated} color="text-blue-700" />
-        <Stat label="Ignorados*" value={result.skipped} color="text-zinc-500" />
         <Stat label="Equipes" value={result.teamsUpserted} color="text-zinc-700" />
       </div>
-
-      {result.skipped > 0 && (
-        <p className="px-4 py-2 text-xs text-zinc-400 border-t border-zinc-100">
-          * Jogos com resultado já salvo não são sobrescritos.
-        </p>
-      )}
 
       {result.errors.length > 0 && (
         <div className="border-t border-red-100 px-4 py-3">

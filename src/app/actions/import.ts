@@ -45,7 +45,10 @@ type ApiMatch = {
   venue: string | null
   homeTeam: ApiTeam | null
   awayTeam: ApiTeam | null
-  score: { fullTime: { home: number | null; away: number | null } }
+  score: {
+    duration: string | null  // 'REGULAR' | 'EXTRA_TIME' | 'PENALTY_SHOOTOUT'
+    fullTime: { home: number | null; away: number | null }
+  }
 }
 
 export async function importMatches(
@@ -88,7 +91,7 @@ export async function importMatches(
 
   const admin = createAdminClient()
   const errors: string[] = []
-  let imported = 0, updated = 0, skipped = 0, teamsUpserted = 0
+  let imported = 0, updated = 0, teamsUpserted = 0
 
   // Build unique team set, capturing group from group-stage matches when available
   const uniqueTeams = new Map<number, ApiTeam & { matchGroup?: string }>()
@@ -149,7 +152,7 @@ export async function importMatches(
     }
   }
 
-  // Upsert matches (skip finished ones — admin manual result wins)
+  // Upsert matches — update metadata always; update scores only when API says FINISHED
   for (const m of apiMatches) {
     const { data: existing } = await admin
       .from('matches')
@@ -157,14 +160,15 @@ export async function importMatches(
       .eq('external_id', m.id)
       .maybeSingle()
 
-    if (existing?.is_finished) { skipped++; continue }
-
     const homeId = m.homeTeam?.id ? (teamIdMap.get(m.homeTeam.id) ?? null) : null
     const awayId = m.awayTeam?.id ? (teamIdMap.get(m.awayTeam.id) ?? null) : null
     const grp = m.group?.replace('GROUP_', '')
     const groupChar = grp && VALID_GROUPS.has(grp) ? grp : null
 
-    const payload = {
+    const isFinished = m.status === 'FINISHED'
+    const wentToExtra = m.score.duration === 'EXTRA_TIME' || m.score.duration === 'PENALTY_SHOOTOUT'
+
+    const metaPayload = {
       phase,
       group: groupChar,
       home_team_id: homeId,
@@ -174,9 +178,20 @@ export async function importMatches(
       external_id: m.id,
     }
 
+    const fullPayload = {
+      ...metaPayload,
+      home_score: m.score.fullTime.home,
+      away_score: m.score.fullTime.away,
+      is_finished: true as const,
+      went_to_extra_time: wentToExtra,
+    }
+
+    const payload = isFinished ? fullPayload : metaPayload
+
     if (existing) {
       const { error: e } = await admin.from('matches').update(payload).eq('id', existing.id)
       if (e) errors.push(`Jogo ${m.id}: ${e.message}`)
+      else if (isFinished && !existing.is_finished) imported++
       else updated++
     } else {
       const { error: e } = await admin.from('matches').insert(payload)
@@ -187,5 +202,5 @@ export async function importMatches(
 
   revalidatePath('/admin/jogos')
 
-  return { imported, updated, skipped, teamsUpserted, errors, phase, timestamp: new Date().toISOString() }
+  return { imported, updated, skipped: 0, teamsUpserted, errors, phase, timestamp: new Date().toISOString() }
 }

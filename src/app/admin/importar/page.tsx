@@ -50,8 +50,8 @@ export default async function AdminImportarPage() {
         <div className="mb-6">
           <h2 className="text-base font-semibold text-zinc-900">Importar jogos via API</h2>
           <p className="mt-1 text-sm text-zinc-500">
-            Busca dados da football-data.org para a fase selecionada. Jogos com resultado já
-            salvo não são sobrescritos. Equipes novas são criadas automaticamente.
+            Busca dados da football-data.org para a fase selecionada. Atualiza horários, equipes e
+            resultados de jogos finalizados. Rode após cada rodada para manter ranking e grupos atualizados.
           </p>
         </div>
 
