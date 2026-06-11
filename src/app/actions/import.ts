@@ -120,7 +120,6 @@ export async function importMatches(
       .maybeSingle()
 
     if (byExtId) {
-      await admin.from('teams').update({ name: apiTeam.name }).eq('id', byExtId.id)
       teamIdMap.set(extId, byExtId.id)
       teamsUpserted++
       continue
@@ -133,7 +132,8 @@ export async function importMatches(
       .maybeSingle()
 
     if (byCode) {
-      await admin.from('teams').update({ external_id: extId, name: apiTeam.name }).eq('id', byCode.id)
+      // Only link the external_id — never overwrite the name set in the admin panel
+      await admin.from('teams').update({ external_id: extId }).eq('id', byCode.id)
       teamIdMap.set(extId, byCode.id)
       teamsUpserted++
       continue
