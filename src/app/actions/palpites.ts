@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type { Database } from '@/lib/supabase/types'
+import type { Database, Json } from '@/lib/supabase/types'
 
 type Phase = Database['public']['Enums']['phase']
 
@@ -136,6 +136,7 @@ export async function savePalpiteFinalDirect(data: {
   fourth_team_id: string | null
   top_scorer: string | null
   best_player: string | null
+  bracket_picks?: Json | null
 }): Promise<{ error: string } | { success: true }> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

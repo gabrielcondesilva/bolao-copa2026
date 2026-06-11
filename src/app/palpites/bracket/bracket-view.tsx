@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useTransition } from 'react'
+import type { Json } from '@/lib/supabase/types'
 import type { SimulatedBracket } from '@/lib/engines/bracket-simulator'
 import { teamFlag } from '@/lib/flags'
 import { savePalpiteFinalDirect } from '@/app/actions/palpites'
@@ -33,6 +34,7 @@ interface Props {
   teamCode: Record<string, string>
   userId: string
   existingFinal: ExistingFinal | null
+  initialPicks: Json | null
   deadlineAt: string | null
   groupStageFinished: boolean
 }
@@ -83,7 +85,7 @@ function emptyPicks(): BracketPicks {
 // ── Main component ────────────────────────────────────────────────────────────
 
 export function BracketView({
-  bracket, teamName, teamCode, userId, existingFinal, deadlineAt, groupStageFinished,
+  bracket, teamName, teamCode, userId, existingFinal, initialPicks, deadlineAt, groupStageFinished,
 }: Props) {
   const [picks, setPicks] = useState<BracketPicks>(emptyPicks)
   const [mounted, setMounted] = useState(false)
@@ -95,12 +97,16 @@ export function BracketView({
   const isLocked = !!deadlineAt && new Date(deadlineAt) <= new Date()
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY(userId))
-      if (raw) setPicks(JSON.parse(raw))
-    } catch {}
+    if (initialPicks && typeof initialPicks === 'object' && !Array.isArray(initialPicks)) {
+      setPicks(initialPicks as unknown as BracketPicks)
+    } else {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY(userId))
+        if (raw) setPicks(JSON.parse(raw))
+      } catch {}
+    }
     setMounted(true)
-  }, [userId])
+  }, [userId, initialPicks])
 
   useEffect(() => {
     if (!mounted) return
@@ -205,6 +211,7 @@ export function BracketView({
         fourth_team_id: fourth,
         top_scorer: topScorer.trim() || null,
         best_player: bestPlayer.trim() || null,
+        bracket_picks: picks as unknown as Json,
       })
       if ('error' in res) {
         setSaveMsg({ ok: false, text: res.error })

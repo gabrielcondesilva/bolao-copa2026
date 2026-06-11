@@ -170,6 +170,7 @@ export type Database = {
           artilheiro_correct: boolean
           best_player: string | null
           best_player_correct: boolean
+          bracket_picks: Json | null
           champion_team_id: string | null
           created_at: string
           fourth_team_id: string | null
@@ -184,6 +185,7 @@ export type Database = {
           artilheiro_correct?: boolean
           best_player?: string | null
           best_player_correct?: boolean
+          bracket_picks?: Json | null
           champion_team_id?: string | null
           created_at?: string
           fourth_team_id?: string | null
@@ -198,6 +200,7 @@ export type Database = {
           artilheiro_correct?: boolean
           best_player?: string | null
           best_player_correct?: boolean
+          bracket_picks?: Json | null
           champion_team_id?: string | null
           created_at?: string
           fourth_team_id?: string | null

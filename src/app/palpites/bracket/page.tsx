@@ -26,7 +26,7 @@ export default async function BracketPage() {
     supabase.from('palpites_jogos').select('match_id, home_score, away_score').eq('user_id', user.id),
     supabase.from('bracket_overrides').select('*'),
     supabase.from('classifier_overrides').select('*'),
-    supabase.from('palpites_finais').select('champion_team_id, runner_up_team_id, third_team_id, fourth_team_id, top_scorer, best_player').eq('user_id', user.id).maybeSingle(),
+    supabase.from('palpites_finais').select('champion_team_id, runner_up_team_id, third_team_id, fourth_team_id, top_scorer, best_player, bracket_picks').eq('user_id', user.id).maybeSingle(),
     supabase.from('phase_deadlines').select('deadline_at').eq('phase', 'group_stage').maybeSingle(),
   ])
 
@@ -153,6 +153,7 @@ export default async function BracketPage() {
             teamCode={teamCode}
             userId={user.id}
             existingFinal={palpiteFinal ?? null}
+            initialPicks={palpiteFinal?.bracket_picks ?? null}
             deadlineAt={groupDeadline?.deadline_at ?? null}
             groupStageFinished={groupStageFinished}
           />
